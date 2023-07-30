@@ -1,0 +1,23 @@
+# Node
+node_modules
+yarn-error.log
+*.log
+.nvm
+
+# IOS
+/ios/Pods/
+build/
+
+# Android
+.idea
+.gradle
+local.properties
+*.iml
+**/android/app/src/main/assets/index.android.bundle
+
+# keys
+*.keystore
+!debug.keystore
+
+package-lock.json
+
