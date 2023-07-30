@@ -49,6 +49,7 @@ local.properties
 /packages/react-native/template/vendor
 .ruby-version
 /**/.ruby-version
+/vendor
 
 # Visual studio
 .vscode
