@@ -17,9 +17,37 @@
     "project": "./tsconfig.json"
   },
   "plugins": [
+    "prettier",
     "react",
+    "react-native",
     "@typescript-eslint"
   ],
   "rules": {
+    "no-use-before-define": "off",
+    "react/jsx-filename-extension": [
+      1,
+      {
+        "extensions": [
+          ".js",
+          ".jsx",
+          ".ts",
+          ".tsx"
+        ]
+      }
+    ],
+    "prettier/prettier": [
+      "error",
+      {
+        "arrowParens": "always",
+        "trailingComma": "es5",
+        "singleQuote": true,
+        "printWidth": 100,
+        "endOfLine": "auto"
+      }
+    ]
+  },
+  "globals": {
+    "React": true,
+    "JSX": true
   }
 }
