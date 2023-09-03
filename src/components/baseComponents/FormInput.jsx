@@ -3,10 +3,15 @@ import { StyleSheet, View, TextInput } from 'react-native';
 import PropTypes from 'prop-types';
 import { theme } from 'petCare/src/helpers/theme';
 
-function FormInput({ width, height, placeholder }) {
+function FormInput({ width, height, placeholder, onChangeText, value }) {
   return (
     <View style={styles.container(width, height)}>
-      <TextInput style={styles.textInput} placeholder={placeholder} />
+      <TextInput
+        placeholder={placeholder}
+        onChangeText={onChangeText}
+        value={value}
+        style={styles.textInput}
+      />
     </View>
   );
 }
@@ -34,6 +39,8 @@ const styles = StyleSheet.create({
 FormInput.propTypes = {
   width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  onChangeText: PropTypes.func.isRequired,
   placeholder: PropTypes.string,
 };
 

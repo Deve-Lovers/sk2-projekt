@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Image } from 'react-native';
 import PropTypes from 'prop-types';
 
@@ -10,11 +10,19 @@ import Button from 'petCare/src/components/baseComponents/Button';
 import { styles } from 'petCare/src/screens/Login/styles';
 
 function SignIn({ navigation }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
   return (
     <Screen>
       <Image source={Logo} style={styles.logotype} />
-      <FormInput height={63} placeholder="Wpisz login..." />
-      <FormInput height={63} placeholder="Wpisz hasło..." />
+      <FormInput placeholder="Wpisz login..." onChangeText={setEmail} value={email} height={63} />
+      <FormInput
+        placeholder="Wpisz hasło..."
+        onChangeText={setPassword}
+        value={password}
+        height={63}
+      />
       <Button
         title="Zaloguj się"
         variant="primaryFocused"

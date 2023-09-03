@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Image } from 'react-native';
 import PropTypes from 'prop-types';
 
@@ -10,10 +10,17 @@ import Button from 'petCare/src/components/baseComponents/Button';
 import { styles } from 'petCare/src/screens/Login/styles';
 
 function SignUp({ navigation }) {
+  const [email, setEmail] = useState('');
+
   return (
     <Screen>
       <Image source={Logo} style={styles.logotype} />
-      <FormInput height={63} placeholder="Wpisz swój adres email..." />
+      <FormInput
+        placeholder="Wpisz swój adres email..."
+        onChangeText={setEmail}
+        value={email}
+        height={63}
+      />
       <Button
         title="Zarejestruj się"
         variant="secondaryFocused"
