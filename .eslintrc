@@ -25,7 +25,9 @@
   "rules": {
     "no-use-before-define": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/strict-boolean-expressions": "off",
     "import/no-extraneous-dependencies": "off",
+    "import/prefer-default-export": "off",
     "import/no-unresolved": "off",
     "import/extensions": "off",
     "react/jsx-filename-extension": [
