@@ -1,11 +1,13 @@
 import React from 'react';
 import { Image, View } from 'react-native';
+import PropTypes from 'prop-types';
+
 import Logo from 'petCare/src/assets/logotypes/LogoPetCare.png';
+
 import Screen from 'petCare/src/components/baseComponents/Screen';
-import { styles } from 'petCare/src/screens/Login/styles';
 import FormInput from 'petCare/src/components/baseComponents/FormInput';
 import Button from 'petCare/src/components/baseComponents/Button';
-import PropTypes from 'prop-types';
+import { styles } from 'petCare/src/screens/Login/styles';
 
 function SignIn({ navigation }) {
   return (
