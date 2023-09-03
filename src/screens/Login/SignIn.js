@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, View } from 'react-native';
+import { Image } from 'react-native';
 import PropTypes from 'prop-types';
 
 import Logo from 'petCare/src/assets/logotypes/LogoPetCare.png';
@@ -15,18 +15,16 @@ function SignIn({ navigation }) {
       <Image source={Logo} style={styles.logotype} />
       <FormInput height={63} />
       <FormInput height={63} />
-      <View style={{ justifyContent: 'center' }}>
-        <Button
-          title="Zaloguj się"
-          variant="primaryFocused"
-          onPress={() => navigation.navigate('Main')}
-        />
-        <Button
-          title="Rejestracja"
-          variant="secondaryOutlined"
-          onPress={() => navigation.navigate('SignUp')}
-        />
-      </View>
+      <Button
+        title="Zaloguj się"
+        variant="primaryFocused"
+        onPress={() => navigation.navigate('Main')}
+      />
+      <Button
+        title="Rejestracja"
+        variant="secondaryOutlined"
+        onPress={() => navigation.navigate('SignUp')}
+      />
     </Screen>
   );
 }
