@@ -1,13 +1,13 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { StyleSheet, View, TextInput } from 'react-native';
 import PropTypes from 'prop-types';
 import { theme } from 'petCare/src/helpers/theme';
 
 function FormInput({ width, height }) {
   return (
-    <TouchableOpacity style={styles.container(width, height)}>
+    <View style={styles.container(width, height)}>
       <TextInput />
-    </TouchableOpacity>
+    </View>
   );
 }
 
