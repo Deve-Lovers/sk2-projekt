@@ -41,11 +41,11 @@ const getStyleFromVariant = (variant) => {
   }
 };
 
-function Button({ title, variant }) {
+function Button({ title, variant, onPress }) {
   const { buttonStyles, textStyles } = getStyleFromVariant(variant);
 
   return (
-    <TouchableOpacity style={[styles.button, buttonStyles]}>
+    <TouchableOpacity onPress={onPress} style={[styles.button, buttonStyles]}>
       <Text style={[styles.text, textStyles]}>{title}</Text>
     </TouchableOpacity>
   );
@@ -97,6 +97,7 @@ Button.propTypes = {
     'primaryOutlined',
     'secondaryOutlined',
   ]),
+  onPress: PropTypes.func.isRequired,
 };
 
 Button.defaultProps = {
