@@ -13,7 +13,7 @@ function SignUp({ navigation }) {
   return (
     <Screen>
       <Image source={Logo} style={styles.logotype} />
-      <FormInput height={63} />
+      <FormInput height={63} placeholder="Wpisz swój adres email..." />
       <Button
         title="Zarejestruj się"
         variant="secondaryFocused"

@@ -13,8 +13,8 @@ function SignIn({ navigation }) {
   return (
     <Screen>
       <Image source={Logo} style={styles.logotype} />
-      <FormInput height={63} />
-      <FormInput height={63} />
+      <FormInput height={63} placeholder="Wpisz login..." />
+      <FormInput height={63} placeholder="Wpisz hasło..." />
       <Button
         title="Zaloguj się"
         variant="primaryFocused"

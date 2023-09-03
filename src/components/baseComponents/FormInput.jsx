@@ -3,10 +3,10 @@ import { StyleSheet, View, TextInput } from 'react-native';
 import PropTypes from 'prop-types';
 import { theme } from 'petCare/src/helpers/theme';
 
-function FormInput({ width, height }) {
+function FormInput({ width, height, placeholder }) {
   return (
     <View style={styles.container(width, height)}>
-      <TextInput />
+      <TextInput style={styles.textInput} placeholder={placeholder} />
     </View>
   );
 }
@@ -24,16 +24,23 @@ const styles = StyleSheet.create({
     width,
     height,
   }),
+  textInput: {
+    marginHorizontal: 20,
+    marginVertical: 12,
+    flex: 1,
+  },
 });
 
 FormInput.propTypes = {
   width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  placeholder: PropTypes.string,
 };
 
 FormInput.defaultProps = {
   width: '100%',
   height: 50,
+  placeholder: '',
 };
 
 export default FormInput;
