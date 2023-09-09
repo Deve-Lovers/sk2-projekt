@@ -24,7 +24,7 @@ function SignUp({ navigation }) {
       <Button
         title="Zarejestruj się"
         variant="secondaryFocused"
-        onPress={() => navigation.navigate('Main')}
+        onPress={() => navigation.navigate('LoginForm')}
       />
       <Button
         title="Logowanie"
