@@ -20,8 +20,13 @@ export const theme = {
     textOnDisabled: 'transparent',
     borderOnDisabled: 'transparent',
 
+    darkText: 'rgba(0,52,88,1)',
+
     background: 'rgba(169,226,245,1)',
     surface: 'rgba(242,244,248,1)',
     shadow: 'rgba(0,0,0,1)',
+
+    error: 'rgba(133,1,33,1)',
+    success: 'rgba(9,99,68,1)',
   },
 };
