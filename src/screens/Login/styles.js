@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { theme } from 'petCare/src/helpers/theme';
 
 const logotype = {
   resizeMode: 'contain',
@@ -8,8 +9,48 @@ const logotype = {
   height: 200,
 };
 
-export const styles = StyleSheet.create({
-  logotype,
+const cornerLogo = {
+  resizeMode: 'contain',
+  width: 130,
+  height: 80,
+};
+
+const welcomeText = {
+  color: theme.colors.darkText,
+  fontWeight: '700',
+  fontSize: 40,
+  margin: 10,
+};
+
+const formSection = {
+  marginTop: 15,
+  marginBottom: 40,
+};
+
+const wrapper = {
+  justifyContent: 'center',
+  alignItems: 'center',
+  margin: 20,
+};
+
+const requirementsText = {
+  color: theme.colors.darkText,
+  fontWeight: '800',
+};
+
+const validationText = (color) => ({
+  alignSelf: 'center',
+  fontWeight: '800',
+  marginTop: 15,
+  color,
 });
 
-// <Button onPress={() => navigation.navigate('Main')} title="Go to Home" />
+export const styles = StyleSheet.create({
+  logotype,
+  cornerLogo,
+  welcomeText,
+  formSection,
+  wrapper,
+  requirementsText,
+  validationText,
+});
