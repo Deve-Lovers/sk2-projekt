@@ -55,15 +55,16 @@ function LoginForm({ navigation }) {
         <Image source={Logo} style={styles.cornerLogo} />
       </View>
       <View style={styles.formSection}>
-        <FormInput placeholder="Imię" onChangeText={setName} value={name} />
-        <FormInput placeholder="Nazwisko" onChangeText={setSurname} value={surname} />
+        <FormInput placeholder="Imię" onChangeText={setName} value={name} colored />
+        <FormInput placeholder="Nazwisko" onChangeText={setSurname} value={surname} colored />
       </View>
-      <FormInput placeholder="Hasło" onChangeText={setPassword} value={password} secured />
+      <FormInput placeholder="Hasło" onChangeText={setPassword} value={password} secured colored />
       <FormInput
         placeholder="Powtórz hasło"
         onChangeText={setPasswordRepeat}
         value={passwordRepeat}
         secured
+        colored
       />
       {error && <Text style={styles.validationText(theme.colors.error)}>{error}</Text>}
       {success && (

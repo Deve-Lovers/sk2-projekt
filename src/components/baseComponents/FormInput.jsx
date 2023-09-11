@@ -3,7 +3,7 @@ import { StyleSheet, View, TextInput } from 'react-native';
 import PropTypes from 'prop-types';
 import { theme } from 'petCare/src/helpers/theme';
 
-function FormInput({ width, height, placeholder, onChangeText, value, secured = false }) {
+function FormInput({ width, height, placeholder, onChangeText, value, secured, colored }) {
   return (
     <View style={styles.container(width, height)}>
       <TextInput
@@ -12,6 +12,7 @@ function FormInput({ width, height, placeholder, onChangeText, value, secured = 
         value={value}
         style={styles.textInput}
         secureTextEntry={secured}
+        placeholderTextColor={colored && theme.colors.textOnPrimaryReversed}
       />
     </View>
   );
@@ -44,6 +45,7 @@ FormInput.propTypes = {
   onChangeText: PropTypes.func.isRequired,
   placeholder: PropTypes.string,
   secured: PropTypes.bool,
+  colored: PropTypes.bool,
 };
 
 FormInput.defaultProps = {
@@ -51,6 +53,7 @@ FormInput.defaultProps = {
   height: 50,
   placeholder: '',
   secured: false,
+  colored: false,
 };
 
 export default FormInput;
