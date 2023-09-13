@@ -2,6 +2,7 @@ import {
   POST_USER_LOGIN_PENDING,
   POST_USER_LOGIN_FULFILLED,
   POST_USER_LOGIN_REJECTED,
+  USER_LOGOUT_FULFILLED,
 } from './actionTypes';
 
 const initialState = {
@@ -38,6 +39,10 @@ export default (state = initialState, action) => {
         error: action.payload.error,
       };
 
+    case USER_LOGOUT_FULFILLED:
+      return {
+        ...initialState,
+      };
     default:
       return state;
   }

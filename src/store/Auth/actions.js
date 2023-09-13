@@ -2,6 +2,7 @@ import {
   POST_USER_LOGIN_PENDING,
   POST_USER_LOGIN_FULFILLED,
   POST_USER_LOGIN_REJECTED,
+  USER_LOGOUT_FULFILLED,
   CLEAR_STATE,
 } from './actionTypes';
 
@@ -36,6 +37,14 @@ export function postUserLogin(email, password) {
           payload: { error },
         })
       );
+  };
+}
+
+export function userLogout() {
+  return (dispatch) => {
+    dispatch({
+      type: USER_LOGOUT_FULFILLED,
+    });
   };
 }
 
