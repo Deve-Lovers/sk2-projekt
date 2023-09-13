@@ -13,7 +13,7 @@ const initialState = {
   error: '',
 };
 
-export default (action, state = initialState) => {
+export default (state = initialState, action) => {
   switch (action.type) {
     case POST_USER_LOGIN_PENDING:
       return {
