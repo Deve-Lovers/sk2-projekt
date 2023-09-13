@@ -8,8 +8,11 @@ import Screen from 'petCare/src/components/baseComponents/Screen';
 import FormInput from 'petCare/src/components/baseComponents/FormInput';
 import Button from 'petCare/src/components/baseComponents/Button';
 import { styles } from 'petCare/src/screens/Login/styles';
+import { connect } from 'react-redux';
+import { postUserLogin } from 'petCare/src/store/Auth/actions';
 
-function SignIn({ navigation }) {
+function SignIn(props) {
+  const { navigation } = props;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -22,11 +25,12 @@ function SignIn({ navigation }) {
         onChangeText={setPassword}
         value={password}
         height={63}
+        secured
       />
       <Button
         title="Zaloguj się"
         variant="primaryFocused"
-        onPress={() => navigation.navigate('Main')}
+        onPress={() => props.postUserLogin(email, password)}
       />
       <Button
         title="Rejestracja"
@@ -43,4 +47,8 @@ SignIn.propTypes = {
   }).isRequired,
 };
 
-export default SignIn;
+const mapDispatchToProps = (dispatch) => ({
+  postUserLogin: (email, pass) => dispatch(postUserLogin(email, pass)),
+});
+
+export default connect(null, mapDispatchToProps)(SignIn);
