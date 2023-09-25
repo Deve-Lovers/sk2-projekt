@@ -1,9 +1,9 @@
 import {
-  POST_USER_LOGIN_PENDING,
+  CLEAR_STATE,
   POST_USER_LOGIN_FULFILLED,
+  POST_USER_LOGIN_PENDING,
   POST_USER_LOGIN_REJECTED,
   USER_LOGOUT_FULFILLED,
-  CLEAR_STATE,
 } from './actionTypes';
 
 export function postUserLogin(email, password) {
@@ -18,12 +18,7 @@ export function postUserLogin(email, password) {
         if (response.status === 200 || response.status === 204) {
           return await response.json();
         }
-        const errorResponse = await response.json();
-        const error = new Error();
-        error.code = errorResponse.error?.code || undefined;
-        error.message = errorResponse.error?.message || undefined;
-        error.userMessage = errorResponse.error?.userMessage || undefined;
-        throw error;
+        throw await response.json();
       })
       .then((responseData) =>
         dispatch({

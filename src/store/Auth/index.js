@@ -36,7 +36,7 @@ export default (state = initialState, action) => {
       return {
         ...state,
         isPending: false,
-        error: action.payload.error,
+        error: action.payload.error.detail,
       };
 
     case USER_LOGOUT_FULFILLED:
