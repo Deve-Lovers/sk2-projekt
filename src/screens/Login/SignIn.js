@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Image, Text } from 'react-native';
 import PropTypes from 'prop-types';
 
 import Logo from 'petCare/src/assets/logotypes/LogoPetCare.png';
@@ -10,11 +10,27 @@ import Button from 'petCare/src/components/baseComponents/Button';
 import { styles } from 'petCare/src/screens/Login/styles';
 import { connect } from 'react-redux';
 import { postUserLogin } from 'petCare/src/store/Auth/actions';
+import { theme } from 'petCare/src/helpers/theme';
 
 function SignIn(props) {
   const { navigation } = props;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showError, setShowError] = useState(false);
+
+  const canSendRequest = email !== '' && password !== '';
+
+  useEffect(() => {
+    setShowError(false);
+  }, [password, email]);
+
+  const loginHandler = () => {
+    if (canSendRequest) {
+      props.postUserLogin(email, password);
+    } else {
+      setShowError(true);
+    }
+  };
 
   return (
     <Screen>
@@ -27,10 +43,16 @@ function SignIn(props) {
         height={63}
         secured
       />
+      {showError && !canSendRequest && (
+        <Text style={styles.validationText(theme.colors.error)}>Wypełnij brakujące pola</Text>
+      )}
+      {!showError && props.error && (
+        <Text style={styles.validationText(theme.colors.error)}>{props.error}</Text>
+      )}
       <Button
         title="Zaloguj się"
-        variant="primaryFocused"
-        onPress={() => props.postUserLogin(email, password)}
+        variant={canSendRequest ? 'primaryFocused' : 'disabled'}
+        onPress={loginHandler}
       />
       <Button
         title="Rejestracja"
@@ -47,8 +69,12 @@ SignIn.propTypes = {
   }).isRequired,
 };
 
+const mapStateToProps = (state) => ({
+  error: state.auth.error,
+});
+
 const mapDispatchToProps = (dispatch) => ({
   postUserLogin: (email, pass) => dispatch(postUserLogin(email, pass)),
 });
 
-export default connect(null, mapDispatchToProps)(SignIn);
+export default connect(mapStateToProps, mapDispatchToProps)(SignIn);
