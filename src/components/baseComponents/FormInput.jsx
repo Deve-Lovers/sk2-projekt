@@ -12,6 +12,7 @@ function FormInput({ width, height, placeholder, onChangeText, value, secured, c
         value={value}
         style={styles.textInput}
         secureTextEntry={secured}
+        autoCapitalize="none"
         placeholderTextColor={colored && theme.colors.textOnPrimaryReversed}
       />
     </View>
