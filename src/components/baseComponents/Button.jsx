@@ -8,10 +8,20 @@ export const buttonVariants = {
   secondaryFocused: 'secondaryFocused',
   primaryOutlined: 'primaryOutlined',
   secondaryOutlined: 'secondaryOutlined',
+  disabled: 'disabled',
+  disabledOutlined: 'disabledOutlined',
 };
 
 const getStyleFromVariant = (variant) => {
-  const { primaryFocused, secondaryFocused, primaryOutlined, secondaryOutlined } = buttonVariants;
+  const {
+    primaryFocused,
+    secondaryFocused,
+    primaryOutlined,
+    secondaryOutlined,
+    disabled,
+    disabledOutlined,
+  } = buttonVariants;
+
   switch (variant) {
     case primaryFocused:
       return {
@@ -33,6 +43,16 @@ const getStyleFromVariant = (variant) => {
         buttonStyles: styles.secondaryButton(true),
         textStyles: styles.secondaryText(true),
       };
+    case disabled:
+      return {
+        buttonStyles: styles.disabledButton(false),
+        textStyles: styles.disabledText(false),
+      };
+    case disabledOutlined:
+      return {
+        buttonStyles: styles.disabledButton(true),
+        textStyles: styles.disabledText(true),
+      };
     default:
       return {
         buttonStyles: styles.primaryButton(false),
@@ -41,11 +61,11 @@ const getStyleFromVariant = (variant) => {
   }
 };
 
-function Button({ title, variant, onPress }) {
+function Button({ title, variant, onPress, disabled }) {
   const { buttonStyles, textStyles } = getStyleFromVariant(variant);
 
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.button, buttonStyles]}>
+    <TouchableOpacity onPress={onPress} style={[styles.button, buttonStyles]} disabled={disabled}>
       <Text style={[styles.text, textStyles]}>{title}</Text>
     </TouchableOpacity>
   );
@@ -82,10 +102,17 @@ const styles = StyleSheet.create({
     backgroundColor: isOutlined
       ? theme.colors.actionSecondaryReversed
       : theme.colors.actionSecondary,
-    borderColor: theme.colors.actionSecondary,
+    borderColor: theme.colors.borderOnSecondary,
   }),
   secondaryText: (isOutlined) => ({
     color: isOutlined ? theme.colors.textOnSecondaryReversed : theme.colors.textOnSecondary,
+  }),
+  disabledButton: (isOutlined) => ({
+    backgroundColor: isOutlined ? theme.colors.textOnDisabled : theme.colors.actionDisabled,
+    borderColor: theme.colors.borderOnDisabled,
+  }),
+  disabledText: (isOutlined) => ({
+    color: isOutlined ? theme.colors.actionDisabled : theme.colors.textOnDisabled,
   }),
 });
 
@@ -98,10 +125,12 @@ Button.propTypes = {
     'secondaryOutlined',
   ]),
   onPress: PropTypes.func.isRequired,
+  disabled: PropTypes.bool,
 };
 
 Button.defaultProps = {
   variant: 'primaryFocused',
+  disabled: false,
 };
 
 export default Button;
