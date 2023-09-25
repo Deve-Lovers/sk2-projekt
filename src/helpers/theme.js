@@ -16,9 +16,9 @@ export const theme = {
     textOnSecondaryReversed: 'rgba(245,57,102,1)',
     borderOnSecondaryReversed: 'rgba(245,57,102,1)',
 
-    actionDisabled: 'transparent',
-    textOnDisabled: 'transparent',
-    borderOnDisabled: 'transparent',
+    actionDisabled: 'rgba(179,179,179,1)',
+    textOnDisabled: 'rgba(248,248,248,1)',
+    borderOnDisabled: 'rgba(179,179,179,1)',
 
     darkText: 'rgba(0,52,88,1)',
 
