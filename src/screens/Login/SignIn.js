@@ -11,6 +11,7 @@ import { styles } from 'petCare/src/screens/Login/styles';
 import { connect } from 'react-redux';
 import { postUserLogin } from 'petCare/src/store/Auth/actions';
 import { theme } from 'petCare/src/helpers/theme';
+import { errorMessage } from 'petCare/src/helpers/errors';
 
 function SignIn(props) {
   const { navigation } = props;
@@ -44,10 +45,12 @@ function SignIn(props) {
         secured
       />
       {showError && !canSendRequest && (
-        <Text style={styles.validationText(theme.colors.error)}>Wypełnij brakujące pola</Text>
+        <Text style={styles.validationText(theme.colors.error)}>
+          {errorMessage('Missing fields')}
+        </Text>
       )}
       {!showError && props.error && (
-        <Text style={styles.validationText(theme.colors.error)}>{props.error}</Text>
+        <Text style={styles.validationText(theme.colors.error)}>{errorMessage(props.error)}</Text>
       )}
       <Button
         title="Zaloguj się"
