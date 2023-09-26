@@ -32,7 +32,7 @@ function SignUp({ navigation }) {
 
   const registerHandler = () => {
     if (isValidate) {
-      navigation.navigate('LoginForm');
+      navigation.navigate('LoginForm', { email });
     } else {
       setShowError(true);
     }

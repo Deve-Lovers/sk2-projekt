@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image, Text, View } from 'react-native';
+import { Alert, Image, Text, View } from 'react-native';
 import PropTypes from 'prop-types';
 
 import Logo from 'petCare/src/assets/logotypes/LogoPetCare.png';
@@ -9,18 +9,25 @@ import FormInput from 'petCare/src/components/baseComponents/FormInput';
 import Button from 'petCare/src/components/baseComponents/Button';
 import { styles } from 'petCare/src/screens/Login/styles';
 import { theme } from 'petCare/src/helpers/theme';
+import { postUserRegister } from 'petCare/src/store/Auth/actions';
+import { connect } from 'react-redux';
+import { errorMessage } from 'petCare/src/helpers/errors';
 
-function LoginForm({ navigation }) {
+function LoginForm(props) {
+  const { navigation, route } = props;
+
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
   const [password, setPassword] = useState('');
   const [passwordRepeat, setPasswordRepeat] = useState('');
-
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
+  const { email } = route.params;
+
   const requirements =
     'Hasło musi zawierać co najmniej:\n- 8 znaków\n- jedną małą literę\n- jedną wielką literę\n- jedną cyfrę\n- znak specjalny';
+  const canSendRequest = name !== '' && surname !== '' && success;
 
   useEffect(() => {
     passwordValidation();
@@ -45,6 +52,14 @@ function LoginForm({ navigation }) {
     } else {
       setError('');
       setSuccess(false);
+    }
+  };
+
+  const handleRegisterNewUser = () => {
+    if (canSendRequest) {
+      props.postUserRegister(email, name, surname, password);
+    } else {
+      Alert.alert('Uzupełnij brakujące informacje');
     }
   };
 
@@ -73,10 +88,14 @@ function LoginForm({ navigation }) {
       <View style={styles.wrapper}>
         <Text style={styles.requirementsText}>{requirements}</Text>
       </View>
+      {/* TODO add proper error description */}
+      {props.error && (
+        <Text style={styles.validationText(theme.colors.error)}>{errorMessage(props.error)}</Text>
+      )}
       <Button
         title="Zarejestruj się"
-        variant="secondaryFocused"
-        onPress={() => navigation.navigate('Main')}
+        variant={canSendRequest ? 'secondaryFocused' : 'disabled'}
+        onPress={handleRegisterNewUser}
       />
       <Button title="Cofnij" variant="primaryOutlined" onPress={() => navigation.goBack()} />
     </Screen>
@@ -90,4 +109,13 @@ LoginForm.propTypes = {
   }).isRequired,
 };
 
-export default LoginForm;
+const mapStateToProps = (state) => ({
+  error: state.auth.error,
+});
+
+const mapDispatchToProps = (dispatch) => ({
+  postUserRegister: (email, name, surname, pass) =>
+    dispatch(postUserRegister(email, name, surname, pass)),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(LoginForm);
