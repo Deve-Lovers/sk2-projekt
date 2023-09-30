@@ -1,3 +1,5 @@
+import { defaultHeaders } from 'petCare/api/headers';
+import { auth, setUrl, urls } from 'petCare/api/urls';
 import {
   CLEAR_STATE,
   POST_USER_LOGIN_FULFILLED,
@@ -9,8 +11,8 @@ import {
 export function postUserLogin(email, password) {
   return async (dispatch) => {
     dispatch({ type: POST_USER_LOGIN_PENDING });
-    return await fetch(`http://127.0.0.1:8000/castle/users/login/`, {
-      headers: { 'Content-Type': 'application/json' },
+    return await fetch(setUrl(auth, urls.LOGIN), {
+      headers: defaultHeaders(),
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
