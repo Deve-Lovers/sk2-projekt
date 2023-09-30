@@ -43,8 +43,8 @@ export function postUserLogin(email, password) {
 export function postUserRegister(email, name, surname, password) {
   return async (dispatch) => {
     dispatch({ type: POST_USER_REGISTER_PENDING });
-    return await fetch(`http://127.0.0.1:8000/castle/users/`, {
-      headers: { 'Content-Type': 'application/json' },
+    return await fetch(setUrl(auth, urls.REGISTER), {
+      headers: defaultHeaders(),
       method: 'POST',
       body: JSON.stringify({ username: email, email, name, surname, password }),
     })

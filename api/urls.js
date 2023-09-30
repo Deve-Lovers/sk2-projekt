@@ -5,8 +5,8 @@ export const setUrl = (prefix, endpoint) => `${API_URL}/${prefix}/${endpoint}/`;
 
 export const urls = {
   API: API_URL,
-  USERS: 'users',
   LOGIN: 'users/login',
+  REGISTER: 'users',
   CLINICS: 'clinics',
 };
 
