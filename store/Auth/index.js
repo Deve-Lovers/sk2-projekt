@@ -39,7 +39,8 @@ export default (state = initialState, action) => {
     case POST_USER_REGISTER_FULFILLED:
       return {
         isPending: false,
-        user: action.payload.data,
+        user: action.payload.data.user,
+        accessToken: action.payload.data.access_token,
         userMail: action.payload.email,
       };
 
