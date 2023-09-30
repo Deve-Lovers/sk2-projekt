@@ -9,7 +9,7 @@ import FormInput from 'petCare/src/components/baseComponents/FormInput';
 import Button from 'petCare/src/components/baseComponents/Button';
 import { styles } from 'petCare/src/screens/Login/styles';
 import { connect } from 'react-redux';
-import { postUserLogin } from 'petCare/src/store/Auth/actions';
+import { postUserLogin } from 'petCare/store/Auth/actions';
 import { theme } from 'petCare/src/helpers/theme';
 import { errorMessage } from 'petCare/src/helpers/errors';
 
