@@ -29,6 +29,7 @@ export default (state = initialState, action) => {
     case POST_USER_LOGIN_FULFILLED:
       return {
         ...state,
+        error: '',
         isPending: false,
         accessToken: action.payload.data.access_token,
         refreshToken: action.payload.data.refresh_token,
@@ -38,6 +39,7 @@ export default (state = initialState, action) => {
 
     case POST_USER_REGISTER_FULFILLED:
       return {
+        error: '',
         isPending: false,
         user: action.payload.data.user,
         accessToken: action.payload.data.access_token,
