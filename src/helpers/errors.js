@@ -9,7 +9,7 @@ export const errorMessage = (error) => {
     case 'Invalid email':
       return 'Błędny format adresu email';
     case 'Account already exists':
-      return 'Konto o podanym adresu email już istnieje';
+      return 'Konto o podanym adresie email już istnieje';
     default:
       return 'Nieznany błąd';
   }
