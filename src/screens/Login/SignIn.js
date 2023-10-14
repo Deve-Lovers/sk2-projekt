@@ -28,10 +28,11 @@ function SignIn(props) {
 
   const loginHandler = () => {
     if (canSendRequest) {
-      props.postUserLogin(email, password);
-      if (props.error) {
-        setShowError(true);
-      }
+      props.postUserLogin(email, password).then((data) => {
+        if (data.payload.error) {
+          setShowError(true);
+        }
+      });
     } else {
       setShowError(true);
     }
