@@ -20,6 +20,7 @@ function SignIn(props) {
   const [showError, setShowError] = useState(false);
 
   const canSendRequest = email !== '' && password !== '';
+  const showMissingField = showError && !canSendRequest;
 
   useEffect(() => {
     setShowError(false);
@@ -27,7 +28,11 @@ function SignIn(props) {
 
   const loginHandler = () => {
     if (canSendRequest) {
-      props.postUserLogin(email, password);
+      props.postUserLogin(email, password).then((data) => {
+        if (data.payload.error) {
+          setShowError(true);
+        }
+      });
     } else {
       setShowError(true);
     }
@@ -44,12 +49,12 @@ function SignIn(props) {
         height={63}
         secured
       />
-      {showError && !canSendRequest && (
+      {showMissingField && (
         <Text style={styles.validationText(theme.colors.error)}>
           {errorMessage('Missing fields')}
         </Text>
       )}
-      {!showError && props.error && (
+      {showError && props.error && !showMissingField && (
         <Text style={styles.validationText(theme.colors.error)}>{errorMessage(props.error)}</Text>
       )}
       <Button

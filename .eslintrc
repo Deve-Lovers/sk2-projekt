@@ -34,6 +34,7 @@
     "no-return-await": "off",
     "react/prop-types": "off",
     "react/destructuring-assignment": "off",
+    "react-hooks/exhaustive-deps": "off",
     "react/jsx-filename-extension": [
       1,
       {
