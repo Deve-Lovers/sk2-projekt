@@ -65,6 +65,7 @@ export default (state = initialState, action) => {
     case USER_EXISTS_FULFILLED:
       return {
         ...state,
+        error: '',
         isPending: false,
         userExists: action.payload.data.exists,
       };
