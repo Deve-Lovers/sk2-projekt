@@ -1,5 +1,5 @@
-import { defaultHeaders } from 'petCare/api/headers';
-import { auth, setUrl, urls } from 'petCare/api/urls';
+import { defaultHeaders } from 'sk/api/headers';
+import { auth, setUrl, urls } from 'sk/api/urls';
 import {
   CLEAR_STATE,
   POST_USER_LOGIN_FULFILLED,

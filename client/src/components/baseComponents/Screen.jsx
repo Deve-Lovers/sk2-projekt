@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import PropTypes from 'prop-types';
-import { theme } from 'petCare/src/helpers/theme';
+import { theme } from 'sk/src/helpers/theme';
 
 function Screen({ children }) {
   return <View style={styles.screen}>{children}</View>;

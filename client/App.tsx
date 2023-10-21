@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Provider } from 'react-redux';
-import AppStack from 'petCare/src/navigation';
-import { store } from './store/index';
+import AppStack from 'sk/src/navigation';
+import { store } from 'sk/store';
 
 function App(): JSX.Element {
   return (

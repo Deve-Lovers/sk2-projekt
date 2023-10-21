@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import LoginStack from 'petCare/src/navigation/LoginStack';
-import MainStack from 'petCare/src/navigation/MainStack';
+import LoginStack from 'sk/src/navigation/LoginStack';
+import MainStack from 'sk/src/navigation/MainStack';
 import { connect } from 'react-redux';
 
 const Stack = createNativeStackNavigator();

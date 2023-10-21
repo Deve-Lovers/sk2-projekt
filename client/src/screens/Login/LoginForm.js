@@ -2,16 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Image, Text, View } from 'react-native';
 import PropTypes from 'prop-types';
 
-import Logo from 'petCare/src/assets/logotypes/LogoPetCare.png';
+import Logo from 'sk/src/assets/logotypes/LogoPetCare.png';
 
-import Screen from 'petCare/src/components/baseComponents/Screen';
-import FormInput from 'petCare/src/components/baseComponents/FormInput';
-import Button from 'petCare/src/components/baseComponents/Button';
-import { styles } from 'petCare/src/screens/Login/styles';
-import { theme } from 'petCare/src/helpers/theme';
-import { postUserRegister } from 'petCare/store/Auth/actions';
+import Screen from 'sk/src/components/baseComponents/Screen';
+import FormInput from 'sk/src/components/baseComponents/FormInput';
+import Button from 'sk/src/components/baseComponents/Button';
+import { styles } from 'sk/src/screens/Login/styles';
+import { theme } from 'sk/src/helpers/theme';
+import { postUserRegister } from 'sk/store/Auth/actions';
 import { connect } from 'react-redux';
-import { errorMessage } from 'petCare/src/helpers/errors';
+import { errorMessage } from 'sk/src/helpers/errors';
 
 function LoginForm(props) {
   const { navigation, route } = props;

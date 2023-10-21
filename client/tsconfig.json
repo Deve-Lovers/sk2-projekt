@@ -14,7 +14,7 @@
     "target": "esnext",
     "baseUrl": ".",
     "paths": {
-      "petCare/*": [
+      "sk/*": [
         "./*"
       ]
     }

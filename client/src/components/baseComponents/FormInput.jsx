@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, TextInput } from 'react-native';
 import PropTypes from 'prop-types';
-import { theme } from 'petCare/src/helpers/theme';
+import { theme } from 'sk/src/helpers/theme';
 
 function FormInput({ width, height, placeholder, onChangeText, value, secured, colored }) {
   return (
