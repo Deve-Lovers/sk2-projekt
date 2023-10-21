@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { theme } from 'petCare/src/helpers/theme';
+import { theme } from 'sk/src/helpers/theme';
 
 const logotype = {
   resizeMode: 'contain',

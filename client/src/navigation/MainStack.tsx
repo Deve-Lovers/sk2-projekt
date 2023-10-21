@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import Settings from 'petCare/src/screens/Settings';
+import Settings from 'sk/src/screens/Settings';
 
 function Home({ navigation }): JSX.Element {
   return (

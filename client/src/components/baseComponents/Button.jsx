@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 import PropTypes from 'prop-types';
-import { theme } from 'petCare/src/helpers/theme';
+import { theme } from 'sk/src/helpers/theme';
 
 export const buttonVariants = {
   primaryFocused: 'primaryFocused',

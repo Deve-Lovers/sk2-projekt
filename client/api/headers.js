@@ -1,4 +1,4 @@
-import { store } from 'petCare/store';
+import { store } from 'sk/store';
 
 export const defaultHeaders = (headers = {}) => ({
   ...headers,

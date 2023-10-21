@@ -1,5 +1,5 @@
 import { Button, Text, View } from 'react-native';
-import { userLogout } from 'petCare/store/Auth/actions';
+import { userLogout } from 'sk/store/Auth/actions';
 import { connect } from 'react-redux';
 import * as React from 'react';
 
