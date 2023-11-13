@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Image, Text, View } from 'react-native';
 import PropTypes from 'prop-types';
 
-import Logo from 'sk/src/assets/logotypes/LogoPetCare.png';
+import Logo from 'sk/src/assets/logotypes/WebtapLogo.png';
 
 import Screen from 'sk/src/components/baseComponents/Screen';
 import FormInput from 'sk/src/components/baseComponents/FormInput';
