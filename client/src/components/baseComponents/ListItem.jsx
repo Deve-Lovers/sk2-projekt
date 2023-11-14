@@ -45,14 +45,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'red',
     marginHorizontal: 10,
     borderRadius: 30,
-    height: 50,
-    width: 50,
+    height: 45,
+    width: 45,
   },
   text: {
     color: theme.colors.darkText,
     textAlign: 'center',
     fontWeight: 'bold',
-    fontSize: 24,
+    fontSize: 22,
     flex: 1,
   },
 });
