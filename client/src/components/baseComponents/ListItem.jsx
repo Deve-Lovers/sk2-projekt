@@ -38,8 +38,8 @@ const styles = StyleSheet.create({
   },
   addUsr: {
     marginHorizontal: 10,
-    height: 40,
-    width: 40,
+    height: 35,
+    width: 35,
   },
   icon: {
     backgroundColor: 'red',
