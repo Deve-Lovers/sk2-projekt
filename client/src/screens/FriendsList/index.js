@@ -6,8 +6,8 @@ import { users } from 'sk/src/helpers/mocks/usersMock';
 function FriendsList() {
   return (
     <Screen>
-      {users.map((user) => (
-        <ListItem name={`${user.name} ${user.surname}`} />
+      {users.map((user, index) => (
+        <ListItem name={`${user.name} ${user.surname}`} color={index % 5} />
       ))}
     </Screen>
   );
