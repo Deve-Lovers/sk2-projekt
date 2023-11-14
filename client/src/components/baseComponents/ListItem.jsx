@@ -6,7 +6,7 @@ import AddUser from 'sk/src/assets/icons/add-user.png';
 
 import { theme } from 'sk/src/helpers/theme';
 
-function FormInput({ name, addFriend }) {
+function ItemList({ name, addFriend }) {
   return (
     <View style={styles.container}>
       <View style={styles.icon} />
@@ -32,9 +32,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
     padding: 10,
-    margin: 10,
+    marginTop: 15,
     maxHeight: 70,
-    width: '95%',
+    width: '100%',
   },
   addUsr: {
     marginHorizontal: 10,
@@ -57,13 +57,13 @@ const styles = StyleSheet.create({
   },
 });
 
-FormInput.propTypes = {
+ItemList.propTypes = {
   name: PropTypes.string.isRequired,
   addFriend: PropTypes.bool,
 };
 
-FormInput.defaultProps = {
+ItemList.defaultProps = {
   addFriend: false,
 };
 
-export default FormInput;
+export default ItemList;
