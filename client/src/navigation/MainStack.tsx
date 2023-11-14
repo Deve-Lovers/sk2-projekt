@@ -1,24 +1,15 @@
 import * as React from 'react';
-import { Button, Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import Settings from 'sk/src/screens/Settings';
-
-function Home({ navigation }): JSX.Element {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Home Screen</Text>
-      <Button onPress={() => navigation.navigate('Settings')} title="Go to Settings" />
-    </View>
-  );
-}
+import FriendsList from 'sk/src/screens/FriendsList';
+import AddFriendList from 'sk/src/screens/AddFriendList';
 
 const Tab = createBottomTabNavigator();
 
 function MainStack(): JSX.Element {
   return (
-    <Tab.Navigator initialRouteName="Home">
-      <Tab.Screen name="Home" component={Home} />
-      <Tab.Screen name="Settings" component={Settings} />
+    <Tab.Navigator initialRouteName="FriendsList">
+      <Tab.Screen name="FriendsList" component={FriendsList} />
+      <Tab.Screen name="AddFriendList" component={AddFriendList} />
     </Tab.Navigator>
   );
 }
