@@ -6,20 +6,20 @@ import AddUser from 'sk/src/assets/icons/add-user.png';
 
 import { theme } from 'sk/src/helpers/theme';
 
-function ItemList({ name, addFriend, color }) {
+function ItemList({ name, addFriend, color, onPress, onPressIcon }) {
   const colors = ['#519259', '#F0BB62', '#064635', '#F4EEA9', '#A0D8B3'];
   const colorsAdd = ['#898121', '#F4EEA9', '#4C4B16', '#E7B10A', '#F7F1E5'];
 
   return (
-    <View style={styles.container}>
+    <TouchableOpacity style={styles.container} onPress={onPress} disabled={addFriend}>
       <View style={styles.icon(addFriend ? colorsAdd[color] : colors[color])} />
       <Text style={styles.text}>{name}</Text>
       {addFriend && (
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onPressIcon}>
           <Image source={AddUser} style={styles.addUsr} />
         </TouchableOpacity>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -64,10 +64,14 @@ ItemList.propTypes = {
   name: PropTypes.string.isRequired,
   addFriend: PropTypes.bool,
   color: PropTypes.number.isRequired,
+  onPress: PropTypes.func,
+  onPressIcon: PropTypes.func,
 };
 
 ItemList.defaultProps = {
   addFriend: false,
+  onPress: () => {},
+  onPressIcon: () => {},
 };
 
 export default ItemList;
