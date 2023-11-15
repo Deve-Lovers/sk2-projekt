@@ -1,10 +1,14 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, SafeAreaView } from 'react-native';
 import PropTypes from 'prop-types';
 import { theme } from 'sk/src/helpers/theme';
 
 function Screen({ children }) {
-  return <View style={styles.screen}>{children}</View>;
+  return (
+    <SafeAreaView style={styles.screen}>
+      <View style={styles.screen}>{children}</View>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
