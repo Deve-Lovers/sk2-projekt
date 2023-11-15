@@ -9,7 +9,6 @@ function Chat({ navigation, route }) {
   return (
     <Screen>
       <ScreenHeader
-        {/* eslint-disable-next-line @typescript-eslint/restrict-template-expressions */}
         title={`${user.name} ${user.surname}`}
         navigation={navigation}
         isButtonVisible
