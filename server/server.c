@@ -81,11 +81,7 @@ static int user_callback(void *NotUsed, int argc, char **argv, char **azColName)
     // TODO optimize
     int i;
     DbUser *user = (DbUser *)NotUsed;
-
-    printf("ejejej: %d\n", argc);
     for (i = 0; i < argc; i++) {
-        printf("ej: %s\n", azColName[i]);
-
         if (strcmp(azColName[i], "id") == 0) {
             user->id = atoi(argv[i]);
         } else if (strcmp(azColName[i], "name") == 0) {
@@ -93,9 +89,6 @@ static int user_callback(void *NotUsed, int argc, char **argv, char **azColName)
         } else if (strcmp(azColName[i], "surname") == 0) {
             user->surname = strdup(argv[i]);
         } else if (strcmp(azColName[i], "email") == 0) {
-            printf("XD\n");
-            printf("email: %s\n", argv[i]);
-            printf("XD\n");
             user->email = strdup(argv[i]);
         }
     }
@@ -103,13 +96,11 @@ static int user_callback(void *NotUsed, int argc, char **argv, char **azColName)
 }
 
 int callback(void *NotUsed, int argc, char **argv, char **azColName) {
-    
     NotUsed = 0;
     for (int i = 0; i < argc; i++) {
 
         printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
     }
-    printf("xddddddddddddddddddddddddddddddddddddddddddddddd\n");
     return 0;
 }
 
@@ -120,20 +111,12 @@ DbUser get_user_by_email(sqlite3 *db, char * user_email, int *ok) {
     char sql[255];
     sprintf(sql, "SELECT * FROM users WHERE email=\"%s\"", user_email);
     int rc = sqlite3_exec(db, sql, user_callback, &user, 0);
-
-    //char *sql = "SELECT * FROM users";
-    char *err_msg = 0;
-
-    // int rc = sqlite3_exec(db, sql, callback, 0, &err_msg);
     if (rc != SQLITE_OK) {
         *ok = 0;
         fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
     } else {
         *ok = 1;
     }
-    printf("RARARARARARARARA\n\n\n");
-    printf("email: %s\n", user.email);
-    printf("RARARARARARARARA\n\n\n");
     return user;
 }
 
@@ -288,13 +271,11 @@ void get_payload(const char *request, Payload *payload, int expected_size) {
     payload->valid = 0;
     const char *payload_start = strstr(request, "\r\n\r\n");
     if (payload_start == NULL) {
-        // Błąd: Nie znaleziono payload
         return;
     }
 
     char *json_copy = strdup(payload_start + 4); // kopia
     if (json_copy == NULL) {
-        // Obsługa błędu alokacji pamięci
         return;
     }
 
@@ -307,11 +288,11 @@ void get_payload(const char *request, Payload *payload, int expected_size) {
     while (token != NULL && payload->size < expected_size) {
         if (key_flag) {
             strncpy(payload->keys[payload->size], token, 50);
-            payload->keys[payload->size][50] = '\0'; // Zabezpieczenie przed przepełnieniem bufora
+            payload->keys[payload->size][50] = '\0';
             key_flag = 0;
         } else {
             strncpy(payload->values[payload->size], token, 50);
-            payload->values[payload->size][50] = '\0'; // Zabezpieczenie przed przepełnieniem bufora
+            payload->values[payload->size][50] = '\0';
             key_flag = 1;
             payload->size++;
         }
@@ -322,12 +303,7 @@ void get_payload(const char *request, Payload *payload, int expected_size) {
 }
 
 
-int validate_payload(char* required_payload[], size_t payloadSize, Payload *payload) {
-    // if(payloadSize != payload->size) {
-    //     printf(" \n");
-    //     return 0;
-    // }
-    
+int validate_payload(char* required_payload[], size_t payloadSize, Payload *payload) {    
     printf("Keys:\n");
     for (size_t i = 0; i < payload->size; ++i) {
         printf("Key[%zu]: \"%s\"\n", i, payload->keys[i]);
@@ -350,16 +326,13 @@ int validate_payload(char* required_payload[], size_t payloadSize, Payload *payl
 // ENDPOINTS =================================
 
 
-DbUser endpoint_register(sqlite3 *db, const char *request, Response *response_object, Response *response) {
-    
-
+void endpoint_register(sqlite3 *db, const char *request, Response *response_object, Response *response) {
     Payload payload;
     get_payload(request, &payload, 5);
 
     DbUser user;
     user.id = -1;
 
-    // snprintf(response, sizeof(response), "%s", "123");
 
     // validation
     int validation_status = 1;
@@ -373,7 +346,7 @@ DbUser endpoint_register(sqlite3 *db, const char *request, Response *response_ob
     if (validation_status == 0) {
         response_object->status_code = 400;
         response_object->data = "{ \"message\": \"Invalid Payload\" }";
-        return user;
+        return;
     }
 
     int status = add_user(
@@ -384,40 +357,18 @@ DbUser endpoint_register(sqlite3 *db, const char *request, Response *response_ob
         payload.values[3]
     );
 
-    printf("RAAA %d\n", status);
-
     if (status == 1) {
         int ok;
         DbUser db_user = get_user_by_email(db, payload.values[2], &ok);
         if (ok == 1) {
-            
-            // snprintf(
-            //     result,
-            //     sizeof(result),
-            //     "{ \"id\": \"123\", \"email\": \"x\", \"name\": \"x\", \"surname\": \"x\"}",
-            //     db_user.email, db_user.name, db_user.surname
-            // );
-
-            // TODO optimize
             set_status_code_200(response_object);
-            
-
-            // sprintf(
-            //     result,
-            //     "raaaaaa",
-            //     //"{ \"id\": \"123\", \"email\": \"x\", \"name\": \"x\", \"surname\": \"x\"}"
-            // );
-            // printf("response: %s\n", result);
-
             snprintf(response, 255, "{ \"id\": \"%d\", \"email\": \"%s\", \"name\": \"%s\", \"surname\": \"%s\"}", db_user.id, db_user.email, db_user.name, db_user.surname);
-            //snprintf(response, 255, "%s", xd);
-            // response_object->data = "{ \"id\": \"siem\", \"email\": \"elo\", \"name\": \"nara\", \"surname\": \"320\"}";
-            return db_user;
+            return;
         }
     }
     set_status_code_400(response_object);
     response_object->data = "{ \"message\": \"Something went wrong UNEXPECTED ERROR.\" }";
-    return user;
+    return;
 }
 
 
@@ -477,7 +428,7 @@ void handle_client(sqlite3 *db, int client_socket, const char *request) {
     } else if (strcmp(path, "/api/register/") == 0) {
 
         char wynik[MAX_BUFFER_SIZE];
-        DbUser temp_db_user = endpoint_register(db, request, &response_object, response);
+        endpoint_register(db, request, &response_object, response);
         printf("Wynik: %s\n", response);
         // snprintf(response, sizeof(response), "{ \"message\": \"%d\" }", temp_db_user.id);  //response_object.data);
 
