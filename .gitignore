@@ -64,3 +64,4 @@ package-lock.json
 
 # object files
 *.out
+*.sqlite3
