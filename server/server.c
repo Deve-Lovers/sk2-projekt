@@ -48,6 +48,8 @@ typedef struct {
 
 char *required_login_payload[] = {"email", "password"};
 char *required_register_payload[] = {"name", "surname", "email", "password"};
+char *required_add_friend_payload[] = {"user_id"};
+char *required_message_payload[] = {"user_id", "message"};
 
 // DB ========================================
 
@@ -76,10 +78,24 @@ void set_status_code_404(Response *response) {
     response->status_code_info = "NOT FOUND";
 }
 
-// Funkcja do obsługi błędów SQLite
-// TODO
+
+// utils
+int string_to_int(const char *str) {
+    printf("|| %s ||\n", str);
+    int value;
+    // sscanf scans the string and extracts a number between the quotes
+    if (sscanf(str, "\"%d\"", &value) == 1) {
+        return value;
+    } else {
+        // Handle the error case where the format doesn't match
+        fprintf(stderr, "Error: Input string is not in the correct format.\n");
+        return 0; // or some other error indicator
+    }
+}
+//
+
+
 static int user_callback(void *NotUsed, int argc, char **argv, char **azColName) {
-    // TODO optimize
     int i;
     DbUser *user = (DbUser *)NotUsed;
     for (i = 0; i < argc; i++) {
@@ -142,6 +158,33 @@ int add_user(sqlite3 *db, const char *name, const char *surname, const char *ema
     }
 }
 
+int add_friend(sqlite3 *db, int main_id, int related_id) {
+    char sql[255];
+    sprintf(sql, "INSERT INTO friends (main_id, related_id) VALUES (%d, %d);", main_id, related_id);
+    int rc = sqlite3_exec(db, sql, 0, 0, 0);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        return 0;
+    } else {
+        printf("Friend added successfully.\n");
+        return 1;
+    }
+}
+
+int create_message(sqlite3 *db, int author_id, int target_id, const char *message) {
+    char sql[255];
+    sprintf(sql, "INSERT INTO messages (author_id, target_id, message) VALUES (%d, %d, '%s');", author_id, target_id, message);
+    int rc = sqlite3_exec(db, sql, 0, 0, 0);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        return 0;
+    } else {
+        printf("Message created successfully.\n");
+        return 1;
+    }
+}
 
 void setup_db(sqlite3 *db, int rc) {
     const char *create_table_sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, name TEXT, surname TEXT, password TEXT);";
@@ -154,6 +197,22 @@ void setup_db(sqlite3 *db, int rc) {
     } else {
         printf("SQL status OK\n");
     }
+
+    // Create 'friends' table
+    const char *create_friends_table_sql = 
+        "CREATE TABLE IF NOT EXISTS friends ("
+        "main_id INTEGER, "
+        "related_id INTEGER);";
+    rc = sqlite3_exec(db, create_friends_table_sql, 0, 0, 0);
+
+    // Create 'messages' table
+    const char *create_messages_table_sql = 
+        "CREATE TABLE IF NOT EXISTS messages ("
+        "message_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "author_id INTEGER, "
+        "target_id INTEGER, "
+        "message TEXT);";
+    rc = sqlite3_exec(db, create_messages_table_sql, 0, 0, 0);
 }
 void sample_database(sqlite3 *db) {
     add_user(db, "zbyszek@test.pl", "Zbyszek", "Wytryszek", "pass1234");
@@ -376,7 +435,7 @@ void endpoint_register(sqlite3 *db, const char *request, Response *response_obje
 
 void endpoint_login(sqlite3 *db, const char *request, Response *response_object, Response *response) {
     Payload payload;
-    get_payload(request, &payload, 5);
+    get_payload(request, &payload, 2);
 
     DbUser user;
     user.id = -1;
@@ -418,6 +477,77 @@ void endpoint_login(sqlite3 *db, const char *request, Response *response_object,
     return;
 }
 
+void endpoint_add_friend(sqlite3 *db, const char *request, Response *response_object, Response *response, User authenticated_user) {
+    Payload payload;
+    get_payload(request, &payload, 1);
+
+    DbUser user;
+    user.id = -1;
+    int validation_status = 1;
+
+    if (payload.valid == 0) {
+        validation_status = 0;
+    } else {
+        size_t payloadSize = sizeof(required_add_friend_payload) / sizeof(required_add_friend_payload[0]);
+        validation_status = validate_payload(required_add_friend_payload, payloadSize, &payload);
+    }
+    if (validation_status == 0) {
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid Payload\" }");
+        return;
+    }
+
+    int status = add_friend(
+        db,
+        authenticated_user.user_id,
+        atoi(payload.values[0])
+    );
+
+    if (status == 1) {
+        set_status_code_204(response_object);
+        snprintf(response, 2, "");
+        return;
+    }
+    set_status_code_400(response_object);
+    snprintf(response, 100, "{ \"message\": \"Something went wrong.\" }");
+    return;
+}
+
+void endpoint_message(sqlite3 *db, const char *request, Response *response_object, Response *response, User authenticated_user) {
+    Payload payload;
+    get_payload(request, &payload, 2);
+
+    int validation_status = 1;
+
+    if (payload.valid == 0) {
+        validation_status = 0;
+    } else {
+        size_t payloadSize = sizeof(required_message_payload) / sizeof(required_message_payload[0]);
+        validation_status = validate_payload(required_message_payload, payloadSize, &payload);
+    }
+    if (validation_status == 0) {
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid Payload\" }");
+        return;
+    }
+
+    int status = create_message(
+        db,
+        authenticated_user.user_id,
+        atoi(payload.values[0]),
+        payload.values[1]
+    );
+
+    if (status == 1) {
+        set_status_code_204(response_object);
+        snprintf(response, 2, "");
+        return;
+    }
+    set_status_code_400(response_object);
+    snprintf(response, 100, "{ \"message\": \"Something went wrong.\" }");
+    return;
+}
+
 // ===========================================
 
 // SERVER ====================================
@@ -448,6 +578,10 @@ void handle_client(sqlite3 *db, int client_socket, const char *request) {
         endpoint_login(db, request, &response_object, response);
     } else if (strcmp(path, "/api/register/") == 0) {
         endpoint_register(db, request, &response_object, response);
+    } else if (strcmp(path, "/api/add-friend/") == 0) {
+        endpoint_add_friend(db, request, &response_object, response, user);
+    } else if (strcmp(path, "/api/message/") == 0) {
+        endpoint_message(db, request, &response_object, response, user);
     } else {
         set_status_code_404(&response_object);
         snprintf(response, sizeof(response), "{ \"message\": \"Unknown endpoint\" }");
