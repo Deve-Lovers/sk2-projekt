@@ -29,6 +29,7 @@ typedef struct {
     char *email;
     char *name;
     char *surname;
+    char *password;
 } DbUser;
 typedef struct {
     int size;
@@ -90,6 +91,8 @@ static int user_callback(void *NotUsed, int argc, char **argv, char **azColName)
             user->surname = strdup(argv[i]);
         } else if (strcmp(azColName[i], "email") == 0) {
             user->email = strdup(argv[i]);
+        } else if (strcmp(azColName[i], "password") == 0) {
+            user->password = strdup(argv[i]);
         }
     }
     return 0;
@@ -333,7 +336,6 @@ void endpoint_register(sqlite3 *db, const char *request, Response *response_obje
     DbUser user;
     user.id = -1;
 
-
     // validation
     int validation_status = 1;
 
@@ -372,12 +374,12 @@ void endpoint_register(sqlite3 *db, const char *request, Response *response_obje
 }
 
 
-void endpoint_login(const char *request, Response *response_object) {
-    // TODO
+void endpoint_login(sqlite3 *db, const char *request, Response *response_object, Response *response) {
     Payload payload;
-    get_payload(request, &payload, 3);
+    get_payload(request, &payload, 5);
 
-    // validation
+    DbUser user;
+    user.id = -1;
     int validation_status = 1;
 
     if (payload.valid == 0) {
@@ -387,13 +389,32 @@ void endpoint_login(const char *request, Response *response_object) {
         validation_status = validate_payload(required_login_payload, payloadSize, &payload);
     }
     if (validation_status == 0) {
-        response_object->status_code = 400;
-        response_object->data = "{ \"message\": \"Invalid Payload\" }";
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid Payload\" }");
         return;
     }
 
-    response_object->status_code = 200;
-    response_object->data = "{ \"message\": \"Ok.\" }";
+    int ok;
+    DbUser db_user = get_user_by_email(db, payload.values[0], &ok);
+    if (ok == 1) {
+        if(db_user.id == NULL) {
+            set_status_code_400(response_object);
+            snprintf(response, 100, "{ \"message\": \"User does not exist.\" }");
+            return;
+        }
+
+        if(strcmp(db_user.password, payload.values[1]) == 0) {
+            set_status_code_200(response_object);
+            snprintf(response, 255, "{ \"id\": \"%d\" }", db_user.id);
+            return;
+        }
+        printf("left:%sright:%sKONIEC \n", db_user.password, payload.values[1]);
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid password.\" }");
+        return;
+    }
+    set_status_code_400(response_object);
+    snprintf(response, 100, "{ \"message\": \"Something went wrong.\" }");
     return;
 }
 
@@ -419,20 +440,14 @@ void handle_client(sqlite3 *db, int client_socket, const char *request) {
 
 
     Response response_object;
+
     // routing
     if (strcmp(path, "/api/ping/") == 0) {
         snprintf(response, sizeof(response), "{ \"message\": \"PING from C server!\" }");
     } else if (strcmp(path, "/api/login/") == 0) {
-        endpoint_login(request, &response_object);
-        snprintf(response, sizeof(response), "%s", response_object.data);
+        endpoint_login(db, request, &response_object, response);
     } else if (strcmp(path, "/api/register/") == 0) {
-
-        char wynik[MAX_BUFFER_SIZE];
         endpoint_register(db, request, &response_object, response);
-        printf("Wynik: %s\n", response);
-        // snprintf(response, sizeof(response), "{ \"message\": \"%d\" }", temp_db_user.id);  //response_object.data);
-
-        // snprintf(response, sizeof(response), response_object.data);
     } else {
         set_status_code_404(&response_object);
         snprintf(response, sizeof(response), "{ \"message\": \"Unknown endpoint\" }");
