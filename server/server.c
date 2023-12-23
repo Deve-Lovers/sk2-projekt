@@ -213,7 +213,6 @@ static int user_callback(void *NotUsed, int argc, char **argv, char **azColName)
     return 0;
 }
 
-
 static int chat_callback(void *data, int argc, char **argv, char **azColName) {
     ChatMessages *chatData = (ChatMessages *)data;
 
@@ -221,23 +220,37 @@ static int chat_callback(void *data, int argc, char **argv, char **azColName) {
     ChatMessage *message = malloc(sizeof(ChatMessage));
     if (!message) {
         fprintf(stderr, "Memory allocation failed.\n");
-        return 1;
+        return 1; // Zwracanie 1 w przypadku błędu
     }
 
-    // Uzupełnianie wiadomości
+    // Inicjalizacja pól struktury na NULL
+    memset(message, 0, sizeof(ChatMessage));
+
     for (int i = 0; i < argc; i++) {
-        // [Kod do uzupełniania struktury message]
+        if (strcmp(azColName[i], "message_id") == 0) {
+            message->message_id = atoi(argv[i] ? argv[i] : "0");
+        } else if (strcmp(azColName[i], "author_id") == 0) {
+            message->author_id = atoi(argv[i] ? argv[i] : "0");
+        } else if (strcmp(azColName[i], "created") == 0) {
+            message->created = argv[i] ? strdup(argv[i]) : NULL;
+        } else if (strcmp(azColName[i], "message") == 0) {
+            message->text = argv[i] ? strdup(argv[i]) : NULL;
+        }
     }
 
     // Realokacja tablicy wiadomości i dodanie nowej wiadomości
     chatData->messages = realloc(chatData->messages, (chatData->count + 1) * sizeof(ChatMessage));
     if (!chatData->messages) {
+        free(message->created); // Zwolnienie pamięci, jeśli została już zaalokowana
+        free(message->text);
         free(message);
         return 1;
     }
+
     chatData->messages[chatData->count] = *message;
     chatData->count++;
 
+    free(message); // Zwolnienie tymczasowej struktury ChatMessage
     return 0;
 }
 
