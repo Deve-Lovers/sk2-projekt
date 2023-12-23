@@ -42,6 +42,16 @@ typedef struct {
     char *status_code_info;
     char *data;
 } Response;
+typedef struct {
+    int message_id;
+    int author_id;
+    char *created;
+    char *text;
+} ChatMessage;
+typedef struct {
+    ChatMessage *messages; // Dynamiczna tablica wiadomości
+    int count;             // Licznik wiadomości
+} ChatMessages;
 
 // ===========================================
 
@@ -50,8 +60,9 @@ char *required_login_payload[] = {"email", "password"};
 char *required_register_payload[] = {"name", "surname", "email", "password"};
 char *required_add_friend_payload[] = {"user_id"};
 char *required_message_payload[] = {"user_id", "message"};
+char *required_get_chat_payload[] = {"user_id"};
 
-// DB ========================================
+// STATUS CODES ==============================
 
 void set_status_code_200(Response *response) {
     response->status_code = 200;
@@ -78,214 +89,9 @@ void set_status_code_404(Response *response) {
     response->status_code_info = "NOT FOUND";
 }
 
-
-// utils
-int string_to_int(const char *str) {
-    printf("|| %s ||\n", str);
-    int value;
-    // sscanf scans the string and extracts a number between the quotes
-    if (sscanf(str, "\"%d\"", &value) == 1) {
-        return value;
-    } else {
-        // Handle the error case where the format doesn't match
-        fprintf(stderr, "Error: Input string is not in the correct format.\n");
-        return 0; // or some other error indicator
-    }
-}
-//
-
-
-static int user_callback(void *NotUsed, int argc, char **argv, char **azColName) {
-    int i;
-    DbUser *user = (DbUser *)NotUsed;
-    for (i = 0; i < argc; i++) {
-        if (strcmp(azColName[i], "id") == 0) {
-            user->id = atoi(argv[i]);
-        } else if (strcmp(azColName[i], "name") == 0) {
-            user->name = strdup(argv[i]);
-        } else if (strcmp(azColName[i], "surname") == 0) {
-            user->surname = strdup(argv[i]);
-        } else if (strcmp(azColName[i], "email") == 0) {
-            user->email = strdup(argv[i]);
-        } else if (strcmp(azColName[i], "password") == 0) {
-            user->password = strdup(argv[i]);
-        }
-    }
-    return 0;
-}
-
-int callback(void *NotUsed, int argc, char **argv, char **azColName) {
-    NotUsed = 0;
-    for (int i = 0; i < argc; i++) {
-
-        printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-    }
-    return 0;
-}
-
-
-// SQL
-DbUser get_user_by_email(sqlite3 *db, char * user_email, int *ok) {
-    DbUser user = {0};
-    char sql[255];
-    sprintf(sql, "SELECT * FROM users WHERE email=\"%s\"", user_email);
-    int rc = sqlite3_exec(db, sql, user_callback, &user, 0);
-    if (rc != SQLITE_OK) {
-        *ok = 0;
-        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
-    } else {
-        *ok = 1;
-    }
-    return user;
-}
-
-int add_user(sqlite3 *db, const char *name, const char *surname, const char *email, const char *password) {
-    printf("PRINT0\n");
-    char sql[255];
-    sprintf(sql, "INSERT INTO users (email, name, surname, password) VALUES ('%s', '%s', '%s', '%s');", email, name, surname, password);
-
-    //printf("SQLPRZED: %s\n", sql);
-    int rc = sqlite3_exec(db, sql, 0, 0, 0);
-
-    printf("PRINT0,5\n");
-    if (rc != SQLITE_OK) {
-        printf("PRINT1\n");
-        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
-        return 0;
-    } else {
-        printf("User added successfully.\n");
-        return 1;
-    }
-}
-
-int add_friend(sqlite3 *db, int main_id, int related_id) {
-    char sql[255];
-    sprintf(sql, "INSERT INTO friends (main_id, related_id) VALUES (%d, %d);", main_id, related_id);
-    int rc = sqlite3_exec(db, sql, 0, 0, 0);
-
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
-        return 0;
-    } else {
-        printf("Friend added successfully.\n");
-        return 1;
-    }
-}
-
-int create_message(sqlite3 *db, int author_id, int target_id, const char *message) {
-    char sql[255];
-    sprintf(sql, "INSERT INTO messages (author_id, target_id, message) VALUES (%d, %d, '%s');", author_id, target_id, message);
-    int rc = sqlite3_exec(db, sql, 0, 0, 0);
-
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
-        return 0;
-    } else {
-        printf("Message created successfully.\n");
-        return 1;
-    }
-}
-
-void setup_db(sqlite3 *db, int rc) {
-    const char *create_table_sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, name TEXT, surname TEXT, password TEXT);";
-    rc = sqlite3_exec(db, create_table_sql, 0, 0, 0);
-
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
-        return;
-    } else {
-        printf("SQL status OK\n");
-    }
-
-    // Create 'friends' table
-    const char *create_friends_table_sql = 
-        "CREATE TABLE IF NOT EXISTS friends ("
-        "main_id INTEGER, "
-        "related_id INTEGER);";
-    rc = sqlite3_exec(db, create_friends_table_sql, 0, 0, 0);
-
-    // Create 'messages' table
-    const char *create_messages_table_sql = 
-        "CREATE TABLE IF NOT EXISTS messages ("
-        "message_id INTEGER PRIMARY KEY AUTOINCREMENT, "
-        "author_id INTEGER, "
-        "target_id INTEGER, "
-        "message TEXT);";
-    rc = sqlite3_exec(db, create_messages_table_sql, 0, 0, 0);
-}
-void sample_database(sqlite3 *db) {
-    add_user(db, "zbyszek@test.pl", "Zbyszek", "Wytryszek", "pass1234");
-    add_user(db, "zosia@test.pl", "Zosia", "Samosia", "pass1234");
-}
 // ===========================================
 
-void log_call(const char * method, const char *path, User user) {
-    const char *temp_authorized = "false";
-    if(user.is_authenticated == 1) {
-        temp_authorized = "true";
-    }
-    printf("(log) <-- Method: %s Endpoint: %s Authorized: %s user_id: %d\n", method, path, temp_authorized, user.user_id);
-    return;
-}
-
-void log_response(const char * method, const char *path, User user) {
-    printf("(log) --> Method\n");
-    return;
-}
-
-int get_user_by_auth_header(const char *authorization) {
-    int user_id;
-    const char *client_prefix = "CLIENT";
-    const char *client_ptr = strstr(authorization, client_prefix);
-
-    if (client_ptr != NULL) {
-        client_ptr += strlen(client_prefix);
-
-        // Konwersja na liczby całkowite
-        char *endptr;
-        user_id = strtol(client_ptr, &endptr, 10);
-        if (endptr != client_ptr && *endptr == '\0') {
-            return user_id;
-        }
-    }
-
-    return -1;
-}
-
-void get_header_value_by_key(const char *headers, const char *key, char *value, size_t value_size) {
-    const char *key_start = strstr(headers, key);
-    if (key_start != NULL) {
-        key_start += strlen(key);
-        const char *value_start = strchr(key_start, ' ');
-        const char *value_end = strchr(key_start, '\r');
-        if (value_start != NULL && value_end != NULL && value_start < value_end) {
-            snprintf(value, value_size, "%.*s", (int)(value_end - value_start), value_start);
-        }
-    }
-}
-
-
-User middleware_auth(const char *request) {
-    User user;
-    user.is_authenticated = 0;
-    user.user_id = -1;
-
-
-    const char *headers_start = strstr(request, "\r\n") + 2;
-    const char *headers_end = strstr(headers_start, "\r\n\r\n");
-    if (headers_start != NULL && headers_end != NULL) {
-        char authorization[MAX_BUFFER_SIZE];
-        get_header_value_by_key(headers_start, "Authorization", authorization, sizeof(authorization));
-        printf("Authorization Header: %s\n", authorization);
-        user.user_id = get_user_by_auth_header(authorization);
-        if (user.user_id > 0) {
-            user.is_authenticated = 1;
-        }
-    }
-    return user;
-}
-
+// UTILS =====================================
 
 void remove_spaces_and_newlines(char *mess) {
     char *original = strdup(mess);
@@ -384,6 +190,262 @@ int validate_payload(char* required_payload[], size_t payloadSize, Payload *payl
     return 1;
 }
 
+// ===========================================
+
+// CALLBACKS =================================
+
+static int user_callback(void *NotUsed, int argc, char **argv, char **azColName) {
+    int i;
+    DbUser *user = (DbUser *)NotUsed;
+    for (i = 0; i < argc; i++) {
+        if (strcmp(azColName[i], "id") == 0) {
+            user->id = atoi(argv[i]);
+        } else if (strcmp(azColName[i], "name") == 0) {
+            user->name = strdup(argv[i]);
+        } else if (strcmp(azColName[i], "surname") == 0) {
+            user->surname = strdup(argv[i]);
+        } else if (strcmp(azColName[i], "email") == 0) {
+            user->email = strdup(argv[i]);
+        } else if (strcmp(azColName[i], "password") == 0) {
+            user->password = strdup(argv[i]);
+        }
+    }
+    return 0;
+}
+
+
+static int chat_callback(void *data, int argc, char **argv, char **azColName) {
+    ChatMessages *chatData = (ChatMessages *)data;
+
+    // Alokacja pamięci dla pojedynczej wiadomości
+    ChatMessage *message = malloc(sizeof(ChatMessage));
+    if (!message) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        return 1;
+    }
+
+    // Uzupełnianie wiadomości
+    for (int i = 0; i < argc; i++) {
+        // [Kod do uzupełniania struktury message]
+    }
+
+    // Realokacja tablicy wiadomości i dodanie nowej wiadomości
+    chatData->messages = realloc(chatData->messages, (chatData->count + 1) * sizeof(ChatMessage));
+    if (!chatData->messages) {
+        free(message);
+        return 1;
+    }
+    chatData->messages[chatData->count] = *message;
+    chatData->count++;
+
+    return 0;
+}
+
+
+int callback(void *NotUsed, int argc, char **argv, char **azColName) {
+    NotUsed = 0;
+    for (int i = 0; i < argc; i++) {
+
+        printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+    }
+    return 0;
+}
+
+// ===========================================
+
+
+// DATABASE ==================================
+
+DbUser get_user_by_email(sqlite3 *db, char * user_email, int *ok) {
+    DbUser user = {0};
+    char sql[255];
+    sprintf(sql, "SELECT * FROM users WHERE email=\"%s\"", user_email);
+    int rc = sqlite3_exec(db, sql, user_callback, &user, 0);
+    if (rc != SQLITE_OK) {
+        *ok = 0;
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+    } else {
+        *ok = 1;
+    }
+    return user;
+}
+
+int add_user(sqlite3 *db, const char *name, const char *surname, const char *email, const char *password) {
+    printf("PRINT0\n");
+    char sql[255];
+    sprintf(sql, "INSERT INTO users (email, name, surname, password) VALUES ('%s', '%s', '%s', '%s');", email, name, surname, password);
+
+    //printf("SQLPRZED: %s\n", sql);
+    int rc = sqlite3_exec(db, sql, 0, 0, 0);
+
+    printf("PRINT0,5\n");
+    if (rc != SQLITE_OK) {
+        printf("PRINT1\n");
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        return 0;
+    } else {
+        printf("User added successfully.\n");
+        return 1;
+    }
+}
+
+int add_friend(sqlite3 *db, int main_id, int related_id) {
+    char sql[255];
+    sprintf(sql, "INSERT INTO friends (main_id, related_id) VALUES (%d, %d);", main_id, related_id);
+    int rc = sqlite3_exec(db, sql, 0, 0, 0);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        return 0;
+    } else {
+        printf("Friend added successfully.\n");
+        return 1;
+    }
+}
+
+int create_message(sqlite3 *db, int author_id, int target_id, const char *message) {
+    char sql[255];
+    sprintf(sql, "INSERT INTO messages (author_id, target_id, message) VALUES (%d, %d, '%s');", author_id, target_id, message);
+    int rc = sqlite3_exec(db, sql, 0, 0, 0);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        return 0;
+    } else {
+        printf("Message created successfully.\n");
+        return 1;
+    }
+}
+
+void setup_db(sqlite3 *db, int rc) {
+    const char *create_table_sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, name TEXT, surname TEXT, password TEXT);";
+    rc = sqlite3_exec(db, create_table_sql, 0, 0, 0);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return;
+    } else {
+        printf("SQL status OK\n");
+    }
+
+    // Create 'friends' table
+    const char *create_friends_table_sql = 
+        "CREATE TABLE IF NOT EXISTS friends ("
+        "main_id INTEGER, "
+        "related_id INTEGER);";
+    rc = sqlite3_exec(db, create_friends_table_sql, 0, 0, 0);
+
+    // Create 'messages' table
+    const char *create_messages_table_sql = 
+        "CREATE TABLE IF NOT EXISTS messages ("
+        "message_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "author_id INTEGER, "
+        "target_id INTEGER, "
+        "message TEXT, "
+        "created DATETIME DEFAULT CURRENT_TIMESTAMP);";
+    rc = sqlite3_exec(db, create_messages_table_sql, 0, 0, 0);
+}
+
+ChatMessage* get_chat(sqlite3 *db, int author_id, int target_id, int *message_count) {
+    char sql[1024];
+    sprintf(sql, "SELECT * FROM messages WHERE (author_id = %d AND target_id = %d) OR (author_id = %d AND target_id = %d);", author_id, target_id, target_id, author_id);
+
+    ChatMessages chatData = {NULL, 0};
+    int rc = sqlite3_exec(db, sql, chat_callback, &chatData, NULL);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        for (int i = 0; i < chatData.count; i++) {
+            free(chatData.messages[i].created);
+            free(chatData.messages[i].text);
+        }
+        free(chatData.messages);
+        return NULL;
+    }
+
+    *message_count = chatData.count;
+    return chatData.messages;
+}
+
+
+void sample_database(sqlite3 *db) {
+    add_user(db, "zbyszek@test.pl", "Zbyszek", "Wytryszek", "pass1234");
+    add_user(db, "zosia@test.pl", "Zosia", "Samosia", "pass1234");
+}
+// ===========================================
+
+// LOGS ======================================
+
+void log_call(const char * method, const char *path, User user) {
+    const char *temp_authorized = "false";
+    if(user.is_authenticated == 1) {
+        temp_authorized = "true";
+    }
+    printf("(log) <-- Method: %s Endpoint: %s Authorized: %s user_id: %d\n", method, path, temp_authorized, user.user_id);
+    return;
+}
+
+void log_response(const char * method, const char *path, User user) {
+    printf("(log) --> Method\n");
+    return;
+}
+// ===========================================
+
+// MIDDLEWARES ===============================
+
+int get_user_by_auth_header(const char *authorization) {
+    int user_id;
+    const char *client_prefix = "CLIENT";
+    const char *client_ptr = strstr(authorization, client_prefix);
+
+    if (client_ptr != NULL) {
+        client_ptr += strlen(client_prefix);
+
+        // Konwersja na liczby całkowite
+        char *endptr;
+        user_id = strtol(client_ptr, &endptr, 10);
+        if (endptr != client_ptr && *endptr == '\0') {
+            return user_id;
+        }
+    }
+
+    return -1;
+}
+
+void get_header_value_by_key(const char *headers, const char *key, char *value, size_t value_size) {
+    const char *key_start = strstr(headers, key);
+    if (key_start != NULL) {
+        key_start += strlen(key);
+        const char *value_start = strchr(key_start, ' ');
+        const char *value_end = strchr(key_start, '\r');
+        if (value_start != NULL && value_end != NULL && value_start < value_end) {
+            snprintf(value, value_size, "%.*s", (int)(value_end - value_start), value_start);
+        }
+    }
+}
+
+
+User middleware_auth(const char *request) {
+    User user;
+    user.is_authenticated = 0;
+    user.user_id = -1;
+
+    const char *headers_start = strstr(request, "\r\n") + 2;
+    const char *headers_end = strstr(headers_start, "\r\n\r\n");
+    if (headers_start != NULL && headers_end != NULL) {
+        char authorization[MAX_BUFFER_SIZE];
+        get_header_value_by_key(headers_start, "Authorization", authorization, sizeof(authorization));
+        printf("Authorization Header: %s\n", authorization);
+        user.user_id = get_user_by_auth_header(authorization);
+        if (user.user_id > 0) {
+            user.is_authenticated = 1;
+        }
+    }
+    return user;
+}
+
+// ===========================================
 
 // ENDPOINTS =================================
 
@@ -513,6 +575,75 @@ void endpoint_add_friend(sqlite3 *db, const char *request, Response *response_ob
     return;
 }
 
+char* convert_messages_to_json(ChatMessage *messages, int message_count) {
+    // Przy założeniu, że pojedynczy JSON nie przekracza 512 znaków
+    int buffer_size = message_count * 512;
+    char *json_result = malloc(buffer_size);
+    if (json_result == NULL) {
+        return NULL;
+    }
+
+    strcpy(json_result, "[");
+    for (int i = 0; i < message_count; i++) {
+        char message_json[512];
+        snprintf(message_json, sizeof(message_json), 
+                 "{\"_id\": %d, \"createdAt\": \"%s\", \"text\": \"%s\", \"user\": {\"_id\": %d}}%s", 
+                 messages[i].message_id, messages[i].created, messages[i].text, messages[i].author_id, 
+                 (i < message_count - 1) ? ", " : "");
+
+        strcat(json_result, message_json);
+    }
+    strcat(json_result, "]");
+
+    return json_result;
+}
+
+
+void endpoint_chat(sqlite3 *db, const char *request, Response *response_object, char *response, User authenticated_user) {
+    Payload payload;
+    get_payload(request, &payload, 1);
+
+    if (payload.valid == 0 || authenticated_user.is_authenticated == 0) {
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid request or unauthorized.\" }");
+        return;
+    }
+
+    size_t payloadSize = sizeof(required_get_chat_payload) / sizeof(required_get_chat_payload[0]);
+    if (!validate_payload(required_get_chat_payload, payloadSize, &payload)) {
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid Payload\" }");
+        return;
+    }
+
+    int target_id = atoi(payload.values[0]);
+    int message_count;
+    ChatMessage *messages = get_chat(db, authenticated_user.user_id, target_id, &message_count);
+
+    printf("messages count %d\n", message_count);
+
+    if (messages == NULL) {
+        set_status_code_404(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"No messages found.\" }");
+        return;
+    }
+
+    // Zakładając, że masz funkcję do konwersji ChatMessage na JSON.
+    char *json_result = convert_messages_to_json(messages, message_count);
+    
+    set_status_code_200(response_object);
+    snprintf(response, MAX_BUFFER_SIZE, "%s", json_result);
+
+    // Zwolnienie pamięci
+    for (int i = 0; i < message_count; i++) {
+        free(messages[i].created);
+        free(messages[i].text);
+    }
+    free(messages);
+    free(json_result);
+}
+
+
 void endpoint_message(sqlite3 *db, const char *request, Response *response_object, Response *response, User authenticated_user) {
     Payload payload;
     get_payload(request, &payload, 2);
@@ -580,6 +711,8 @@ void handle_client(sqlite3 *db, int client_socket, const char *request) {
         endpoint_register(db, request, &response_object, response);
     } else if (strcmp(path, "/api/add-friend/") == 0) {
         endpoint_add_friend(db, request, &response_object, response, user);
+    } else if (strcmp(path, "/api/chat/") == 0) {
+        endpoint_chat(db, request, &response_object, response, user);
     } else if (strcmp(path, "/api/message/") == 0) {
         endpoint_message(db, request, &response_object, response, user);
     } else {
