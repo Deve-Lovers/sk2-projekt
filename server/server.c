@@ -84,26 +84,32 @@ void set_status_code_200(Response *response) {
     response->status_code = 200;
     response->status_code_info = "OK";
 }
+
 void set_status_code_201(Response *response) {
     response->status_code = 201;
     response->status_code_info = "CREATED";
 }
+
 void set_status_code_204(Response *response) {
     response->status_code = 204;
     response->status_code_info = "NO CONTENT";
 }
+
 void set_status_code_400(Response *response) {
     response->status_code = 400;
     response->status_code_info = "BAD REQUEST";
 }
+
 void set_status_code_401(Response *response) {
     response->status_code = 401;
     response->status_code_info = "UNAUTHORIZED";
 }
+
 void set_status_code_403(Response *response) {
     response->status_code = 403;
     response->status_code_info = "FORBIDDEN";
 }
+
 void set_status_code_404(Response *response) {
     response->status_code = 404;
     response->status_code_info = "NOT FOUND";
