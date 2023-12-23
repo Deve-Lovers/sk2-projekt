@@ -76,12 +76,17 @@ char *required_register_payload[] = {"name", "surname", "email", "password"};
 char *required_add_friend_payload[] = {"user_id"};
 char *required_message_payload[] = {"user_id", "message"};
 char *required_get_chat_payload[] = {"user_id"};
+char *required_user_exists_payload[] = {"email"};
 
 // STATUS CODES ==============================
 
 void set_status_code_200(Response *response) {
     response->status_code = 200;
     response->status_code_info = "OK";
+}
+void set_status_code_201(Response *response) {
+    response->status_code = 201;
+    response->status_code_info = "CREATED";
 }
 void set_status_code_204(Response *response) {
     response->status_code = 204;
@@ -425,6 +430,34 @@ Friend* get_friends(sqlite3 *db, int user_id, int *friend_count) {
     return friendsData.friends;
 }
 
+Friend* get_others(sqlite3 *db, int user_id, int *other_count) {
+    char sql[1024];
+    sprintf(sql, 
+            "SELECT u.id, u.name, u.surname FROM users u "
+            "WHERE u.id NOT IN ("
+            "    SELECT related_id FROM friends WHERE main_id = %d"
+            "    UNION "
+            "    SELECT main_id FROM friends WHERE related_id = %d"
+            ") AND u.id != %d;", 
+            user_id, user_id, user_id);
+
+    FriendsData othersData = {NULL, 0};
+    int rc = sqlite3_exec(db, sql, friends_callback, &othersData, NULL);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        for (int i = 0; i < othersData.count; i++) {
+            free(othersData.friends[i].name);
+            free(othersData.friends[i].surname);
+        }
+        free(othersData.friends);
+        return NULL;
+    }
+
+    *other_count = othersData.count;
+    return othersData.friends;
+}
+
 void sample_database(sqlite3 *db) {
     add_user(db, "zbyszek@test.pl", "Zbyszek", "Wytryszek", "pass1234");
     add_user(db, "zosia@test.pl", "Zosia", "Samosia", "pass1234");
@@ -587,7 +620,7 @@ void endpoint_register(sqlite3 *db, const char *request, Response *response_obje
         int ok;
         DbUser db_user = get_user_by_email(db, payload.values[2], &ok);
         if (ok == 1) {
-            set_status_code_200(response_object);
+            set_status_code_201(response_object);
             snprintf(response, 255, "{ \"id\": \"%d\", \"email\": \"%s\", \"name\": \"%s\", \"surname\": \"%s\"}", db_user.id, db_user.email, db_user.name, db_user.surname);
             return;
         }
@@ -707,6 +740,36 @@ void endpoint_list_my_friends(sqlite3 *db, Response *response_object, char *resp
     free(json_result);
 }
 
+void endpoint_list_others(sqlite3 *db, Response *response_object, char *response, User authenticated_user) {
+    if (!authenticated_user.is_authenticated) {
+        set_status_code_401(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"Unauthorized access.\" }");
+        return;
+    }
+
+    int user_count;
+    Friend *others = get_others(db, authenticated_user.user_id, &user_count);
+
+    if (others == NULL || user_count == 0) {
+        set_status_code_404(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"No other users found.\" }");
+        return;
+    }
+
+    char *json_result = convert_friends_to_json(others, user_count);
+    set_status_code_200(response_object);
+    snprintf(response, MAX_BUFFER_SIZE, "%s", json_result);
+
+    // Clean up
+    for (int i = 0; i < user_count; i++) {
+        free(others[i].name);
+        free(others[i].surname);
+    }
+    free(others);
+    free(json_result);
+}
+
+
 void endpoint_chat(sqlite3 *db, const char *request, Response *response_object, char *response, User authenticated_user) {
     Payload payload;
     get_payload(request, &payload, 1);
@@ -787,6 +850,28 @@ void endpoint_message(sqlite3 *db, const char *request, Response *response_objec
     return;
 }
 
+void endpoint_user_exists(sqlite3 *db, const char *request, Response *response_object, Response *response) {
+    Payload payload;
+    get_payload(request, &payload, 1); // Expecting 1 field in the payload: "email"
+
+    if (payload.valid == 0) {
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid Payload\" }");
+        return;
+    }
+
+    int ok;
+    DbUser user = get_user_by_email(db, payload.values[0], &ok);
+
+    set_status_code_200(response_object);
+    if (ok && user.id != NULL) {
+        snprintf(response, 100, "{ \"exists\": true }");
+    } else {
+        snprintf(response, 100, "{ \"exists\": false }");
+    }
+}
+
+
 // ===========================================
 
 // SERVER ====================================
@@ -825,6 +910,10 @@ void handle_client(sqlite3 *db, int client_socket, const char *request) {
         endpoint_message(db, request, &response_object, response, user);
     } else if (strcmp(path, "/api/list-my-friends/") == 0) {
         endpoint_list_my_friends(db, &response_object, response, user);
+    } else if (strcmp(path, "/api/list-others/") == 0) {
+        endpoint_list_others(db, &response_object, response, user);
+    } else if (strcmp(path, "/api/user-exists/") == 0) {
+        endpoint_user_exists(db, request, &response_object, response);
     }
     else {
         set_status_code_404(&response_object);
