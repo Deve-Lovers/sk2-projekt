@@ -5,6 +5,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <ctype.h>
+
+#include <jansson.h>
+
+
 
 
 // db imports
@@ -93,48 +98,6 @@ void set_status_code_404(Response *response) {
 
 // UTILS =====================================
 
-void remove_spaces_and_newlines(char *mess) {
-    char *original = strdup(mess);
-    memset(mess, 0, strlen(mess));
-    for (size_t i = 0, j = 0; i < strlen(original); i++) {
-        if (original[i] != ' ' && original[i] != '\n') {
-            mess[j++] = original[i];
-        }
-    }
-    free(original);
-}
-
-
-void extract_keys_and_values(const char *json, char ***keys, char ***values, size_t *size) {
-    if (json == NULL || keys == NULL || values == NULL || size == NULL) {
-        return;
-    }
-    char *json_copy = strdup(json);
-    char *json_start = strchr(json_copy, '{');
-    char *json_end = strrchr(json_copy, '}');
-    if (json_start == NULL || json_end == NULL) {
-        free(json_copy);
-        return;
-    }
-    char *cursor = json_start + 1;
-    while (cursor < json_end) {
-        char *colon = strchr(cursor, ':');
-        if (colon != NULL) {
-            *colon = '\0';
-            char *clean_key = strtok(cursor, "\" \t\n\r");
-            char *clean_value = strtok(colon + 1, "\" \t\n\r");
-            *keys = (char **)realloc(*keys, (*size + 1) * sizeof(char *));
-            *values = (char **)realloc(*values, (*size + 1) * sizeof(char *));
-            (*keys)[*size] = strdup(clean_key);
-            (*values)[*size] = strdup(clean_value);
-            (*size)++;
-        }
-        cursor = colon + 1;
-    }
-    free(json_copy);
-}
-
-
 void get_payload(const char *request, Payload *payload, int expected_size) {
     payload->valid = 0;
     const char *payload_start = strstr(request, "\r\n\r\n");
@@ -142,31 +105,41 @@ void get_payload(const char *request, Payload *payload, int expected_size) {
         return;
     }
 
-    char *json_copy = strdup(payload_start + 4); // kopia
-    if (json_copy == NULL) {
+    // Przesuń wskaźnik, aby wskazywał na początek payloadu JSON.
+    payload_start += 4;
+
+    // Parsowanie JSON
+    json_t *root;
+    json_error_t error;
+    root = json_loads(payload_start, 0, &error);
+
+    if (!root) {
+        // Błąd parsowania
+        fprintf(stderr, "JSON error: on line %d: %s\n", error.line, error.text);
         return;
     }
 
-    // usuwanie spacji i znakw nowej linii
-    remove_spaces_and_newlines(json_copy);
-
-    char *token = strtok(json_copy, ":,{}\"");
-    int key_flag = 1;
-    payload->size = 0;
-    while (token != NULL && payload->size < expected_size) {
-        if (key_flag) {
-            strncpy(payload->keys[payload->size], token, 50);
-            payload->keys[payload->size][50] = '\0';
-            key_flag = 0;
-        } else {
-            strncpy(payload->values[payload->size], token, 50);
-            payload->values[payload->size][50] = '\0';
-            key_flag = 1;
-            payload->size++;
-        }
-        token = strtok(NULL, ":,{}\"");
+    // Sprawdzanie, czy obiekt JSON jest słownikiem
+    if (!json_is_object(root)) {
+        fprintf(stderr, "error: root is not an object\n");
+        json_decref(root);
+        return;
     }
-    free(json_copy);
+
+    const char *key;
+    json_t *value;
+    payload->size = 0;
+
+    json_object_foreach(root, key, value) {
+        if (payload->size >= expected_size) {
+            break; // Przerwij, jeśli osiągnięto oczekiwaną ilość elementów
+        }
+        strncpy(payload->keys[payload->size], key, sizeof(payload->keys[payload->size]) - 1);
+        strncpy(payload->values[payload->size], json_string_value(value), sizeof(payload->values[payload->size]) - 1);
+        payload->size++;
+    }
+
+    json_decref(root);
     payload->valid = 1;
 }
 
@@ -177,7 +150,6 @@ int validate_payload(char* required_payload[], size_t payloadSize, Payload *payl
         printf("Key[%zu]: \"%s\"\n", i, payload->keys[i]);
         printf("Value[%zu]: \"%s\"\n", i, payload->values[i]);
     }
-    
 
     for (size_t i = 0; i < payloadSize; i++) {
 
