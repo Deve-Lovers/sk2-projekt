@@ -57,6 +57,16 @@ typedef struct {
     ChatMessage *messages; // Dynamiczna tablica wiadomości
     int count;             // Licznik wiadomości
 } ChatMessages;
+typedef struct {
+    int id;
+    char *name;
+    char *surname;
+} Friend;
+typedef struct {
+    Friend *friends; // Dynamic array of friends
+    int count;       // Number of friends
+} FriendsData;
+
 
 // ===========================================
 
@@ -226,6 +236,45 @@ static int chat_callback(void *data, int argc, char **argv, char **azColName) {
     return 0;
 }
 
+static int friends_callback(void *data, int argc, char **argv, char **azColName) {
+    FriendsData *friendsData = (FriendsData *)data;
+
+    // Allocate memory for a single friend
+    Friend *friend = malloc(sizeof(Friend));
+    if (!friend) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        return 1;
+    }
+
+    // Initialize fields to NULL
+    memset(friend, 0, sizeof(Friend));
+
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(azColName[i], "id") == 0) {
+            friend->id = atoi(argv[i] ? argv[i] : "0");
+        } else if (strcmp(azColName[i], "name") == 0) {
+            friend->name = argv[i] ? strdup(argv[i]) : NULL;
+        } else if (strcmp(azColName[i], "surname") == 0) {
+            friend->surname = argv[i] ? strdup(argv[i]) : NULL;
+        }
+    }
+
+    // Reallocate the friends array and add the new friend
+    friendsData->friends = realloc(friendsData->friends, (friendsData->count + 1) * sizeof(Friend));
+    if (!friendsData->friends) {
+        free(friend->name);
+        free(friend->surname);
+        free(friend);
+        return 1;
+    }
+
+    friendsData->friends[friendsData->count] = *friend;
+    friendsData->count++;
+
+    free(friend); // Free the temporary Friend structure
+    return 0;
+}
+
 
 int callback(void *NotUsed, int argc, char **argv, char **azColName) {
     NotUsed = 0;
@@ -353,6 +402,28 @@ ChatMessage* get_chat(sqlite3 *db, int author_id, int target_id, int *message_co
     return chatData.messages;
 }
 
+Friend* get_friends(sqlite3 *db, int user_id, int *friend_count) {
+    char sql[1024];
+    sprintf(sql, "SELECT u.id, u.name, u.surname FROM friends f "
+                 "JOIN users u ON u.id = f.related_id "
+                 "WHERE f.main_id = %d;", user_id);
+
+    FriendsData friendsData = {NULL, 0};
+    int rc = sqlite3_exec(db, sql, friends_callback, &friendsData, NULL);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        for (int i = 0; i < friendsData.count; i++) {
+            free(friendsData.friends[i].name);
+            free(friendsData.friends[i].surname);
+        }
+        free(friendsData.friends);
+        return NULL;
+    }
+
+    *friend_count = friendsData.count;
+    return friendsData.friends;
+}
 
 void sample_database(sqlite3 *db) {
     add_user(db, "zbyszek@test.pl", "Zbyszek", "Wytryszek", "pass1234");
@@ -428,6 +499,53 @@ User middleware_auth(const char *request) {
         }
     }
     return user;
+}
+
+
+
+// CONVERTORS ================================
+
+char* convert_messages_to_json(ChatMessage *messages, int message_count) {
+    // Przy założeniu, że pojedynczy JSON nie przekracza 512 znaków
+    int buffer_size = message_count * 512;
+    char *json_result = malloc(buffer_size);
+    if (json_result == NULL) {
+        return NULL;
+    }
+
+    strcpy(json_result, "[");
+    for (int i = 0; i < message_count; i++) {
+        char message_json[512];
+        snprintf(message_json, sizeof(message_json), 
+                 "{\"_id\": %d, \"createdAt\": \"%s\", \"text\": \"%s\", \"user\": {\"_id\": %d}}%s", 
+                 messages[i].message_id, messages[i].created, messages[i].text, messages[i].author_id, 
+                 (i < message_count - 1) ? ", " : "");
+
+        strcat(json_result, message_json);
+    }
+    strcat(json_result, "]");
+
+    return json_result;
+}
+
+char* convert_friends_to_json(Friend *friends, int friend_count) {
+    // Assuming each JSON object doesn't exceed 256 characters
+    int buffer_size = friend_count * 256;
+    char *json_result = malloc(buffer_size);
+    if (!json_result) return NULL;
+
+    strcpy(json_result, "[");
+    for (int i = 0; i < friend_count; i++) {
+        char friend_json[256];
+        snprintf(friend_json, sizeof(friend_json),
+                 "{\"id\": %d, \"name\": \"%s\", \"surname\": \"%s\"}%s",
+                 friends[i].id, friends[i].name, friends[i].surname,
+                 (i < friend_count - 1) ? ", " : "");
+        strcat(json_result, friend_json);
+    }
+    strcat(json_result, "]");
+
+    return json_result;
 }
 
 // ===========================================
@@ -560,29 +678,34 @@ void endpoint_add_friend(sqlite3 *db, const char *request, Response *response_ob
     return;
 }
 
-char* convert_messages_to_json(ChatMessage *messages, int message_count) {
-    // Przy założeniu, że pojedynczy JSON nie przekracza 512 znaków
-    int buffer_size = message_count * 512;
-    char *json_result = malloc(buffer_size);
-    if (json_result == NULL) {
-        return NULL;
+void endpoint_list_my_friends(sqlite3 *db, Response *response_object, char *response, User authenticated_user) {
+    if (!authenticated_user.is_authenticated) {
+        set_status_code_401(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"Unauthorized access.\" }");
+        return;
     }
 
-    strcpy(json_result, "[");
-    for (int i = 0; i < message_count; i++) {
-        char message_json[512];
-        snprintf(message_json, sizeof(message_json), 
-                 "{\"_id\": %d, \"createdAt\": \"%s\", \"text\": \"%s\", \"user\": {\"_id\": %d}}%s", 
-                 messages[i].message_id, messages[i].created, messages[i].text, messages[i].author_id, 
-                 (i < message_count - 1) ? ", " : "");
+    int friend_count;
+    Friend *friends = get_friends(db, authenticated_user.user_id, &friend_count);
 
-        strcat(json_result, message_json);
+    if (friends == NULL || friend_count == 0) {
+        set_status_code_404(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"No friends found.\" }");
+        return;
     }
-    strcat(json_result, "]");
 
-    return json_result;
+    char *json_result = convert_friends_to_json(friends, friend_count);
+    set_status_code_200(response_object);
+    snprintf(response, MAX_BUFFER_SIZE, "%s", json_result);
+
+    // Clean up
+    for (int i = 0; i < friend_count; i++) {
+        free(friends[i].name);
+        free(friends[i].surname);
+    }
+    free(friends);
+    free(json_result);
 }
-
 
 void endpoint_chat(sqlite3 *db, const char *request, Response *response_object, char *response, User authenticated_user) {
     Payload payload;
@@ -700,7 +823,10 @@ void handle_client(sqlite3 *db, int client_socket, const char *request) {
         endpoint_chat(db, request, &response_object, response, user);
     } else if (strcmp(path, "/api/message/") == 0) {
         endpoint_message(db, request, &response_object, response, user);
-    } else {
+    } else if (strcmp(path, "/api/list-my-friends/") == 0) {
+        endpoint_list_my_friends(db, &response_object, response, user);
+    }
+    else {
         set_status_code_404(&response_object);
         snprintf(response, sizeof(response), "{ \"message\": \"Unknown endpoint\" }");
     }
