@@ -5,6 +5,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <ctype.h>
+
+#include <jansson.h>
+
+
 
 
 // db imports
@@ -29,6 +34,7 @@ typedef struct {
     char *email;
     char *name;
     char *surname;
+    char *password;
 } DbUser;
 typedef struct {
     int size;
@@ -41,44 +47,147 @@ typedef struct {
     char *status_code_info;
     char *data;
 } Response;
+typedef struct {
+    int message_id;
+    int author_id;
+    char *created;
+    char *text;
+} ChatMessage;
+typedef struct {
+    ChatMessage *messages; // Dynamiczna tablica wiadomości
+    int count;             // Licznik wiadomości
+} ChatMessages;
+typedef struct {
+    int id;
+    char *name;
+    char *surname;
+} Friend;
+typedef struct {
+    Friend *friends; // Dynamic array of friends
+    int count;       // Number of friends
+} FriendsData;
+
 
 // ===========================================
 
 
 char *required_login_payload[] = {"email", "password"};
 char *required_register_payload[] = {"name", "surname", "email", "password"};
+char *required_add_friend_payload[] = {"user_id"};
+char *required_message_payload[] = {"user_id", "message"};
+char *required_get_chat_payload[] = {"user_id"};
+char *required_user_exists_payload[] = {"email"};
 
-// DB ========================================
+// STATUS CODES ==============================
 
 void set_status_code_200(Response *response) {
     response->status_code = 200;
     response->status_code_info = "OK";
 }
+
+void set_status_code_201(Response *response) {
+    response->status_code = 201;
+    response->status_code_info = "CREATED";
+}
+
 void set_status_code_204(Response *response) {
     response->status_code = 204;
     response->status_code_info = "NO CONTENT";
 }
+
 void set_status_code_400(Response *response) {
     response->status_code = 400;
     response->status_code_info = "BAD REQUEST";
 }
+
 void set_status_code_401(Response *response) {
     response->status_code = 401;
     response->status_code_info = "UNAUTHORIZED";
 }
+
 void set_status_code_403(Response *response) {
     response->status_code = 403;
     response->status_code_info = "FORBIDDEN";
 }
+
 void set_status_code_404(Response *response) {
     response->status_code = 404;
     response->status_code_info = "NOT FOUND";
 }
 
-// Funkcja do obsługi błędów SQLite
-// TODO
+// ===========================================
+
+// UTILS =====================================
+
+void get_payload(const char *request, Payload *payload, int expected_size) {
+    payload->valid = 0;
+    const char *payload_start = strstr(request, "\r\n\r\n");
+    if (payload_start == NULL) {
+        return;
+    }
+
+    // Przesuń wskaźnik, aby wskazywał na początek payloadu JSON.
+    payload_start += 4;
+
+    // Parsowanie JSON
+    json_t *root;
+    json_error_t error;
+    root = json_loads(payload_start, 0, &error);
+
+    if (!root) {
+        // Błąd parsowania
+        fprintf(stderr, "JSON error: on line %d: %s\n", error.line, error.text);
+        return;
+    }
+
+    // Sprawdzanie, czy obiekt JSON jest słownikiem
+    if (!json_is_object(root)) {
+        fprintf(stderr, "error: root is not an object\n");
+        json_decref(root);
+        return;
+    }
+
+    const char *key;
+    json_t *value;
+    payload->size = 0;
+
+    json_object_foreach(root, key, value) {
+        if (payload->size >= expected_size) {
+            break; // Przerwij, jeśli osiągnięto oczekiwaną ilość elementów
+        }
+        strncpy(payload->keys[payload->size], key, sizeof(payload->keys[payload->size]) - 1);
+        strncpy(payload->values[payload->size], json_string_value(value), sizeof(payload->values[payload->size]) - 1);
+        payload->size++;
+    }
+
+    json_decref(root);
+    payload->valid = 1;
+}
+
+
+int validate_payload(char* required_payload[], size_t payloadSize, Payload *payload) {    
+    printf("Keys:\n");
+    for (size_t i = 0; i < payload->size; ++i) {
+        printf("Key[%zu]: \"%s\"\n", i, payload->keys[i]);
+        printf("Value[%zu]: \"%s\"\n", i, payload->values[i]);
+    }
+
+    for (size_t i = 0; i < payloadSize; i++) {
+
+        if(strcmp(required_payload[i], payload->keys[i]) != 0) {
+            printf("left:%sright:%sKONIEC \n", required_payload[i], payload->keys[i]);
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+// ===========================================
+
+// CALLBACKS =================================
+
 static int user_callback(void *NotUsed, int argc, char **argv, char **azColName) {
-    // TODO optimize
     int i;
     DbUser *user = (DbUser *)NotUsed;
     for (i = 0; i < argc; i++) {
@@ -90,10 +199,93 @@ static int user_callback(void *NotUsed, int argc, char **argv, char **azColName)
             user->surname = strdup(argv[i]);
         } else if (strcmp(azColName[i], "email") == 0) {
             user->email = strdup(argv[i]);
+        } else if (strcmp(azColName[i], "password") == 0) {
+            user->password = strdup(argv[i]);
         }
     }
     return 0;
 }
+
+static int chat_callback(void *data, int argc, char **argv, char **azColName) {
+    ChatMessages *chatData = (ChatMessages *)data;
+
+    // Alokacja pamięci dla pojedynczej wiadomości
+    ChatMessage *message = malloc(sizeof(ChatMessage));
+    if (!message) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        return 1; // Zwracanie 1 w przypadku błędu
+    }
+
+    // Inicjalizacja pól struktury na NULL
+    memset(message, 0, sizeof(ChatMessage));
+
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(azColName[i], "message_id") == 0) {
+            message->message_id = atoi(argv[i] ? argv[i] : "0");
+        } else if (strcmp(azColName[i], "author_id") == 0) {
+            message->author_id = atoi(argv[i] ? argv[i] : "0");
+        } else if (strcmp(azColName[i], "created") == 0) {
+            message->created = argv[i] ? strdup(argv[i]) : NULL;
+        } else if (strcmp(azColName[i], "message") == 0) {
+            message->text = argv[i] ? strdup(argv[i]) : NULL;
+        }
+    }
+
+    // Realokacja tablicy wiadomości i dodanie nowej wiadomości
+    chatData->messages = realloc(chatData->messages, (chatData->count + 1) * sizeof(ChatMessage));
+    if (!chatData->messages) {
+        free(message->created); // Zwolnienie pamięci, jeśli została już zaalokowana
+        free(message->text);
+        free(message);
+        return 1;
+    }
+
+    chatData->messages[chatData->count] = *message;
+    chatData->count++;
+
+    free(message); // Zwolnienie tymczasowej struktury ChatMessage
+    return 0;
+}
+
+static int friends_callback(void *data, int argc, char **argv, char **azColName) {
+    FriendsData *friendsData = (FriendsData *)data;
+
+    // Allocate memory for a single friend
+    Friend *friend = malloc(sizeof(Friend));
+    if (!friend) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        return 1;
+    }
+
+    // Initialize fields to NULL
+    memset(friend, 0, sizeof(Friend));
+
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(azColName[i], "id") == 0) {
+            friend->id = atoi(argv[i] ? argv[i] : "0");
+        } else if (strcmp(azColName[i], "name") == 0) {
+            friend->name = argv[i] ? strdup(argv[i]) : NULL;
+        } else if (strcmp(azColName[i], "surname") == 0) {
+            friend->surname = argv[i] ? strdup(argv[i]) : NULL;
+        }
+    }
+
+    // Reallocate the friends array and add the new friend
+    friendsData->friends = realloc(friendsData->friends, (friendsData->count + 1) * sizeof(Friend));
+    if (!friendsData->friends) {
+        free(friend->name);
+        free(friend->surname);
+        free(friend);
+        return 1;
+    }
+
+    friendsData->friends[friendsData->count] = *friend;
+    friendsData->count++;
+
+    free(friend); // Free the temporary Friend structure
+    return 0;
+}
+
 
 int callback(void *NotUsed, int argc, char **argv, char **azColName) {
     NotUsed = 0;
@@ -104,8 +296,11 @@ int callback(void *NotUsed, int argc, char **argv, char **azColName) {
     return 0;
 }
 
+// ===========================================
 
-// SQL
+
+// DATABASE ==================================
+
 DbUser get_user_by_email(sqlite3 *db, char * user_email, int *ok) {
     DbUser user = {0};
     char sql[255];
@@ -139,6 +334,33 @@ int add_user(sqlite3 *db, const char *name, const char *surname, const char *ema
     }
 }
 
+int add_friend(sqlite3 *db, int main_id, int related_id) {
+    char sql[255];
+    sprintf(sql, "INSERT INTO friends (main_id, related_id) VALUES (%d, %d);", main_id, related_id);
+    int rc = sqlite3_exec(db, sql, 0, 0, 0);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        return 0;
+    } else {
+        printf("Friend added successfully.\n");
+        return 1;
+    }
+}
+
+int create_message(sqlite3 *db, int author_id, int target_id, const char *message) {
+    char sql[255];
+    sprintf(sql, "INSERT INTO messages (author_id, target_id, message) VALUES (%d, %d, '%s');", author_id, target_id, message);
+    int rc = sqlite3_exec(db, sql, 0, 0, 0);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        return 0;
+    } else {
+        printf("Message created successfully.\n");
+        return 1;
+    }
+}
 
 void setup_db(sqlite3 *db, int rc) {
     const char *create_table_sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, name TEXT, surname TEXT, password TEXT);";
@@ -151,12 +373,104 @@ void setup_db(sqlite3 *db, int rc) {
     } else {
         printf("SQL status OK\n");
     }
+
+    // Create 'friends' table
+    const char *create_friends_table_sql = 
+        "CREATE TABLE IF NOT EXISTS friends ("
+        "main_id INTEGER, "
+        "related_id INTEGER);";
+    rc = sqlite3_exec(db, create_friends_table_sql, 0, 0, 0);
+
+    // Create 'messages' table
+    const char *create_messages_table_sql = 
+        "CREATE TABLE IF NOT EXISTS messages ("
+        "message_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "author_id INTEGER, "
+        "target_id INTEGER, "
+        "message TEXT, "
+        "created DATETIME DEFAULT CURRENT_TIMESTAMP);";
+    rc = sqlite3_exec(db, create_messages_table_sql, 0, 0, 0);
 }
+
+ChatMessage* get_chat(sqlite3 *db, int author_id, int target_id, int *message_count) {
+    char sql[1024];
+    sprintf(sql, "SELECT * FROM messages WHERE (author_id = %d AND target_id = %d) OR (author_id = %d AND target_id = %d);", author_id, target_id, target_id, author_id);
+
+    ChatMessages chatData = {NULL, 0};
+    int rc = sqlite3_exec(db, sql, chat_callback, &chatData, NULL);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        for (int i = 0; i < chatData.count; i++) {
+            free(chatData.messages[i].created);
+            free(chatData.messages[i].text);
+        }
+        free(chatData.messages);
+        return NULL;
+    }
+
+    *message_count = chatData.count;
+    return chatData.messages;
+}
+
+Friend* get_friends(sqlite3 *db, int user_id, int *friend_count) {
+    char sql[1024];
+    sprintf(sql, "SELECT u.id, u.name, u.surname FROM friends f "
+                 "JOIN users u ON u.id = f.related_id "
+                 "WHERE f.main_id = %d;", user_id);
+
+    FriendsData friendsData = {NULL, 0};
+    int rc = sqlite3_exec(db, sql, friends_callback, &friendsData, NULL);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        for (int i = 0; i < friendsData.count; i++) {
+            free(friendsData.friends[i].name);
+            free(friendsData.friends[i].surname);
+        }
+        free(friendsData.friends);
+        return NULL;
+    }
+
+    *friend_count = friendsData.count;
+    return friendsData.friends;
+}
+
+Friend* get_others(sqlite3 *db, int user_id, int *other_count) {
+    char sql[1024];
+    sprintf(sql, 
+            "SELECT u.id, u.name, u.surname FROM users u "
+            "WHERE u.id NOT IN ("
+            "    SELECT related_id FROM friends WHERE main_id = %d"
+            "    UNION "
+            "    SELECT main_id FROM friends WHERE related_id = %d"
+            ") AND u.id != %d;", 
+            user_id, user_id, user_id);
+
+    FriendsData othersData = {NULL, 0};
+    int rc = sqlite3_exec(db, sql, friends_callback, &othersData, NULL);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
+        for (int i = 0; i < othersData.count; i++) {
+            free(othersData.friends[i].name);
+            free(othersData.friends[i].surname);
+        }
+        free(othersData.friends);
+        return NULL;
+    }
+
+    *other_count = othersData.count;
+    return othersData.friends;
+}
+
 void sample_database(sqlite3 *db) {
     add_user(db, "zbyszek@test.pl", "Zbyszek", "Wytryszek", "pass1234");
     add_user(db, "zosia@test.pl", "Zosia", "Samosia", "pass1234");
 }
 // ===========================================
+
+// LOGS ======================================
 
 void log_call(const char * method, const char *path, User user) {
     const char *temp_authorized = "false";
@@ -171,6 +485,9 @@ void log_response(const char * method, const char *path, User user) {
     printf("(log) --> Method\n");
     return;
 }
+// ===========================================
+
+// MIDDLEWARES ===============================
 
 int get_user_by_auth_header(const char *authorization) {
     int user_id;
@@ -209,7 +526,6 @@ User middleware_auth(const char *request) {
     user.is_authenticated = 0;
     user.user_id = -1;
 
-
     const char *headers_start = strstr(request, "\r\n") + 2;
     const char *headers_end = strstr(headers_start, "\r\n\r\n");
     if (headers_start != NULL && headers_end != NULL) {
@@ -225,103 +541,53 @@ User middleware_auth(const char *request) {
 }
 
 
-void remove_spaces_and_newlines(char *mess) {
-    char *original = strdup(mess);
-    memset(mess, 0, strlen(mess));
-    for (size_t i = 0, j = 0; i < strlen(original); i++) {
-        if (original[i] != ' ' && original[i] != '\n') {
-            mess[j++] = original[i];
-        }
+
+// CONVERTORS ================================
+
+char* convert_messages_to_json(ChatMessage *messages, int message_count) {
+    // Przy założeniu, że pojedynczy JSON nie przekracza 512 znaków
+    int buffer_size = message_count * 512;
+    char *json_result = malloc(buffer_size);
+    if (json_result == NULL) {
+        return NULL;
     }
-    free(original);
+
+    strcpy(json_result, "[");
+    for (int i = 0; i < message_count; i++) {
+        char message_json[512];
+        snprintf(message_json, sizeof(message_json), 
+                 "{\"_id\": %d, \"createdAt\": \"%s\", \"text\": \"%s\", \"user\": {\"_id\": %d}}%s", 
+                 messages[i].message_id, messages[i].created, messages[i].text, messages[i].author_id, 
+                 (i < message_count - 1) ? ", " : "");
+
+        strcat(json_result, message_json);
+    }
+    strcat(json_result, "]");
+
+    return json_result;
 }
 
+char* convert_friends_to_json(Friend *friends, int friend_count) {
+    // Assuming each JSON object doesn't exceed 256 characters
+    int buffer_size = friend_count * 256;
+    char *json_result = malloc(buffer_size);
+    if (!json_result) return NULL;
 
-void extract_keys_and_values(const char *json, char ***keys, char ***values, size_t *size) {
-    if (json == NULL || keys == NULL || values == NULL || size == NULL) {
-        return;
+    strcpy(json_result, "[");
+    for (int i = 0; i < friend_count; i++) {
+        char friend_json[256];
+        snprintf(friend_json, sizeof(friend_json),
+                 "{\"id\": %d, \"name\": \"%s\", \"surname\": \"%s\"}%s",
+                 friends[i].id, friends[i].name, friends[i].surname,
+                 (i < friend_count - 1) ? ", " : "");
+        strcat(json_result, friend_json);
     }
-    char *json_copy = strdup(json);
-    char *json_start = strchr(json_copy, '{');
-    char *json_end = strrchr(json_copy, '}');
-    if (json_start == NULL || json_end == NULL) {
-        free(json_copy);
-        return;
-    }
-    char *cursor = json_start + 1;
-    while (cursor < json_end) {
-        char *colon = strchr(cursor, ':');
-        if (colon != NULL) {
-            *colon = '\0';
-            char *clean_key = strtok(cursor, "\" \t\n\r");
-            char *clean_value = strtok(colon + 1, "\" \t\n\r");
-            *keys = (char **)realloc(*keys, (*size + 1) * sizeof(char *));
-            *values = (char **)realloc(*values, (*size + 1) * sizeof(char *));
-            (*keys)[*size] = strdup(clean_key);
-            (*values)[*size] = strdup(clean_value);
-            (*size)++;
-        }
-        cursor = colon + 1;
-    }
-    free(json_copy);
+    strcat(json_result, "]");
+
+    return json_result;
 }
 
-
-void get_payload(const char *request, Payload *payload, int expected_size) {
-    payload->valid = 0;
-    const char *payload_start = strstr(request, "\r\n\r\n");
-    if (payload_start == NULL) {
-        return;
-    }
-
-    char *json_copy = strdup(payload_start + 4); // kopia
-    if (json_copy == NULL) {
-        return;
-    }
-
-    // usuwanie spacji i znakw nowej linii
-    remove_spaces_and_newlines(json_copy);
-
-    char *token = strtok(json_copy, ":,{}\"");
-    int key_flag = 1;
-    payload->size = 0;
-    while (token != NULL && payload->size < expected_size) {
-        if (key_flag) {
-            strncpy(payload->keys[payload->size], token, 50);
-            payload->keys[payload->size][50] = '\0';
-            key_flag = 0;
-        } else {
-            strncpy(payload->values[payload->size], token, 50);
-            payload->values[payload->size][50] = '\0';
-            key_flag = 1;
-            payload->size++;
-        }
-        token = strtok(NULL, ":,{}\"");
-    }
-    free(json_copy);
-    payload->valid = 1;
-}
-
-
-int validate_payload(char* required_payload[], size_t payloadSize, Payload *payload) {    
-    printf("Keys:\n");
-    for (size_t i = 0; i < payload->size; ++i) {
-        printf("Key[%zu]: \"%s\"\n", i, payload->keys[i]);
-        printf("Value[%zu]: \"%s\"\n", i, payload->values[i]);
-    }
-    
-
-    for (size_t i = 0; i < payloadSize; i++) {
-
-        if(strcmp(required_payload[i], payload->keys[i]) != 0) {
-            printf("left:%sright:%sKONIEC \n", required_payload[i], payload->keys[i]);
-            return 0;
-        }
-    }
-
-    return 1;
-}
-
+// ===========================================
 
 // ENDPOINTS =================================
 
@@ -332,7 +598,6 @@ void endpoint_register(sqlite3 *db, const char *request, Response *response_obje
 
     DbUser user;
     user.id = -1;
-
 
     // validation
     int validation_status = 1;
@@ -361,7 +626,7 @@ void endpoint_register(sqlite3 *db, const char *request, Response *response_obje
         int ok;
         DbUser db_user = get_user_by_email(db, payload.values[2], &ok);
         if (ok == 1) {
-            set_status_code_200(response_object);
+            set_status_code_201(response_object);
             snprintf(response, 255, "{ \"id\": \"%d\", \"email\": \"%s\", \"name\": \"%s\", \"surname\": \"%s\"}", db_user.id, db_user.email, db_user.name, db_user.surname);
             return;
         }
@@ -372,12 +637,12 @@ void endpoint_register(sqlite3 *db, const char *request, Response *response_obje
 }
 
 
-void endpoint_login(const char *request, Response *response_object) {
-    // TODO
+void endpoint_login(sqlite3 *db, const char *request, Response *response_object, Response *response) {
     Payload payload;
-    get_payload(request, &payload, 3);
+    get_payload(request, &payload, 2);
 
-    // validation
+    DbUser user;
+    user.id = -1;
     int validation_status = 1;
 
     if (payload.valid == 0) {
@@ -387,15 +652,231 @@ void endpoint_login(const char *request, Response *response_object) {
         validation_status = validate_payload(required_login_payload, payloadSize, &payload);
     }
     if (validation_status == 0) {
-        response_object->status_code = 400;
-        response_object->data = "{ \"message\": \"Invalid Payload\" }";
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid Payload\" }");
         return;
     }
 
-    response_object->status_code = 200;
-    response_object->data = "{ \"message\": \"Ok.\" }";
+    int ok;
+    DbUser db_user = get_user_by_email(db, payload.values[0], &ok);
+    if (ok == 1) {
+        if(db_user.id == NULL) {
+            set_status_code_400(response_object);
+            snprintf(response, 100, "{ \"message\": \"User does not exist.\" }");
+            return;
+        }
+
+        if(strcmp(db_user.password, payload.values[1]) == 0) {
+            set_status_code_200(response_object);
+            snprintf(response, 255, "{ \"id\": \"%d\" }", db_user.id);
+            return;
+        }
+        printf("left:%sright:%sKONIEC \n", db_user.password, payload.values[1]);
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid password.\" }");
+        return;
+    }
+    set_status_code_400(response_object);
+    snprintf(response, 100, "{ \"message\": \"Something went wrong.\" }");
     return;
 }
+
+void endpoint_add_friend(sqlite3 *db, const char *request, Response *response_object, Response *response, User authenticated_user) {
+    Payload payload;
+    get_payload(request, &payload, 1);
+
+    DbUser user;
+    user.id = -1;
+    int validation_status = 1;
+
+    if (payload.valid == 0) {
+        validation_status = 0;
+    } else {
+        size_t payloadSize = sizeof(required_add_friend_payload) / sizeof(required_add_friend_payload[0]);
+        validation_status = validate_payload(required_add_friend_payload, payloadSize, &payload);
+    }
+    if (validation_status == 0) {
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid Payload\" }");
+        return;
+    }
+
+    int status = add_friend(
+        db,
+        authenticated_user.user_id,
+        atoi(payload.values[0])
+    );
+
+    if (status == 1) {
+        set_status_code_204(response_object);
+        snprintf(response, 2, "");
+        return;
+    }
+    set_status_code_400(response_object);
+    snprintf(response, 100, "{ \"message\": \"Something went wrong.\" }");
+    return;
+}
+
+void endpoint_list_my_friends(sqlite3 *db, Response *response_object, char *response, User authenticated_user) {
+    if (!authenticated_user.is_authenticated) {
+        set_status_code_401(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"Unauthorized access.\" }");
+        return;
+    }
+
+    int friend_count;
+    Friend *friends = get_friends(db, authenticated_user.user_id, &friend_count);
+
+    if (friends == NULL || friend_count == 0) {
+        set_status_code_404(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"No friends found.\" }");
+        return;
+    }
+
+    char *json_result = convert_friends_to_json(friends, friend_count);
+    set_status_code_200(response_object);
+    snprintf(response, MAX_BUFFER_SIZE, "%s", json_result);
+
+    // Clean up
+    for (int i = 0; i < friend_count; i++) {
+        free(friends[i].name);
+        free(friends[i].surname);
+    }
+    free(friends);
+    free(json_result);
+}
+
+void endpoint_list_others(sqlite3 *db, Response *response_object, char *response, User authenticated_user) {
+    if (!authenticated_user.is_authenticated) {
+        set_status_code_401(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"Unauthorized access.\" }");
+        return;
+    }
+
+    int user_count;
+    Friend *others = get_others(db, authenticated_user.user_id, &user_count);
+
+    if (others == NULL || user_count == 0) {
+        set_status_code_404(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"No other users found.\" }");
+        return;
+    }
+
+    char *json_result = convert_friends_to_json(others, user_count);
+    set_status_code_200(response_object);
+    snprintf(response, MAX_BUFFER_SIZE, "%s", json_result);
+
+    // Clean up
+    for (int i = 0; i < user_count; i++) {
+        free(others[i].name);
+        free(others[i].surname);
+    }
+    free(others);
+    free(json_result);
+}
+
+
+void endpoint_chat(sqlite3 *db, const char *request, Response *response_object, char *response, User authenticated_user) {
+    Payload payload;
+    get_payload(request, &payload, 1);
+
+    if (payload.valid == 0 || authenticated_user.is_authenticated == 0) {
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid request or unauthorized.\" }");
+        return;
+    }
+
+    size_t payloadSize = sizeof(required_get_chat_payload) / sizeof(required_get_chat_payload[0]);
+    if (!validate_payload(required_get_chat_payload, payloadSize, &payload)) {
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid Payload\" }");
+        return;
+    }
+
+    int target_id = atoi(payload.values[0]);
+    int message_count;
+    ChatMessage *messages = get_chat(db, authenticated_user.user_id, target_id, &message_count);
+
+    printf("messages count %d\n", message_count);
+
+    if (messages == NULL) {
+        set_status_code_404(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"No messages found.\" }");
+        return;
+    }
+
+    // Zakładając, że masz funkcję do konwersji ChatMessage na JSON.
+    char *json_result = convert_messages_to_json(messages, message_count);
+    
+    set_status_code_200(response_object);
+    snprintf(response, MAX_BUFFER_SIZE, "%s", json_result);
+
+    // Zwolnienie pamięci
+    for (int i = 0; i < message_count; i++) {
+        free(messages[i].created);
+        free(messages[i].text);
+    }
+    free(messages);
+    free(json_result);
+}
+
+
+void endpoint_message(sqlite3 *db, const char *request, Response *response_object, Response *response, User authenticated_user) {
+    Payload payload;
+    get_payload(request, &payload, 2);
+
+    int validation_status = 1;
+
+    if (payload.valid == 0) {
+        validation_status = 0;
+    } else {
+        size_t payloadSize = sizeof(required_message_payload) / sizeof(required_message_payload[0]);
+        validation_status = validate_payload(required_message_payload, payloadSize, &payload);
+    }
+    if (validation_status == 0) {
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid Payload\" }");
+        return;
+    }
+
+    int status = create_message(
+        db,
+        authenticated_user.user_id,
+        atoi(payload.values[0]),
+        payload.values[1]
+    );
+
+    if (status == 1) {
+        set_status_code_204(response_object);
+        snprintf(response, 2, "");
+        return;
+    }
+    set_status_code_400(response_object);
+    snprintf(response, 100, "{ \"message\": \"Something went wrong.\" }");
+    return;
+}
+
+void endpoint_user_exists(sqlite3 *db, const char *request, Response *response_object, Response *response) {
+    Payload payload;
+    get_payload(request, &payload, 1); // Expecting 1 field in the payload: "email"
+
+    if (payload.valid == 0) {
+        set_status_code_400(response_object);
+        snprintf(response, 100, "{ \"message\": \"Invalid Payload\" }");
+        return;
+    }
+
+    int ok;
+    DbUser user = get_user_by_email(db, payload.values[0], &ok);
+
+    set_status_code_200(response_object);
+    if (ok && user.id != NULL) {
+        snprintf(response, 100, "{ \"exists\": true }");
+    } else {
+        snprintf(response, 100, "{ \"exists\": false }");
+    }
+}
+
 
 // ===========================================
 
@@ -419,21 +900,28 @@ void handle_client(sqlite3 *db, int client_socket, const char *request) {
 
 
     Response response_object;
+
     // routing
     if (strcmp(path, "/api/ping/") == 0) {
         snprintf(response, sizeof(response), "{ \"message\": \"PING from C server!\" }");
     } else if (strcmp(path, "/api/login/") == 0) {
-        endpoint_login(request, &response_object);
-        snprintf(response, sizeof(response), "%s", response_object.data);
+        endpoint_login(db, request, &response_object, response);
     } else if (strcmp(path, "/api/register/") == 0) {
-
-        char wynik[MAX_BUFFER_SIZE];
         endpoint_register(db, request, &response_object, response);
-        printf("Wynik: %s\n", response);
-        // snprintf(response, sizeof(response), "{ \"message\": \"%d\" }", temp_db_user.id);  //response_object.data);
-
-        // snprintf(response, sizeof(response), response_object.data);
-    } else {
+    } else if (strcmp(path, "/api/add-friend/") == 0) {
+        endpoint_add_friend(db, request, &response_object, response, user);
+    } else if (strcmp(path, "/api/chat/") == 0) {
+        endpoint_chat(db, request, &response_object, response, user);
+    } else if (strcmp(path, "/api/message/") == 0) {
+        endpoint_message(db, request, &response_object, response, user);
+    } else if (strcmp(path, "/api/list-my-friends/") == 0) {
+        endpoint_list_my_friends(db, &response_object, response, user);
+    } else if (strcmp(path, "/api/list-others/") == 0) {
+        endpoint_list_others(db, &response_object, response, user);
+    } else if (strcmp(path, "/api/user-exists/") == 0) {
+        endpoint_user_exists(db, request, &response_object, response);
+    }
+    else {
         set_status_code_404(&response_object);
         snprintf(response, sizeof(response), "{ \"message\": \"Unknown endpoint\" }");
     }
