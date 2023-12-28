@@ -2,12 +2,13 @@ import { API_URL } from '@env';
 
 // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
 export const setUrl = (prefix, endpoint) => `${API_URL}/${prefix}/${endpoint}/`;
+export const setProxyUrl = () => API_URL;
 
 export const urls = {
   API: API_URL,
-  LOGIN: 'users/login',
-  EXIST: 'users/user-exists',
-  REGISTER: 'users',
+  LOGIN: 'login',
+  EXIST: 'user-exists',
+  REGISTER: 'register',
   CLINICS: 'clinics',
 };
 
