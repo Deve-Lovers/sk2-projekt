@@ -13,7 +13,6 @@ import {
 
 const initialState = {
   accessToken: null,
-  refreshToken: null,
   userMail: '',
   user: {},
   isPending: false,
@@ -37,9 +36,8 @@ export default (state = initialState, action) => {
         error: '',
         isPending: false,
         userExists: false,
-        accessToken: action.payload.data.access_token,
-        refreshToken: action.payload.data.refresh_token,
-        user: action.payload.data.user,
+        accessToken: action.payload.data.id,
+        user: `${action.payload.data.name} ${action.payload.data.surname}`,
         userMail: action.payload.email,
       };
 
@@ -48,8 +46,8 @@ export default (state = initialState, action) => {
         error: '',
         isPending: false,
         userExists: false,
-        user: action.payload.data.user,
-        accessToken: action.payload.data.access_token,
+        user: `${action.payload.data.name} ${action.payload.data.surname}`,
+        accessToken: action.payload.data.id,
         userMail: action.payload.email,
       };
 
@@ -59,7 +57,7 @@ export default (state = initialState, action) => {
       return {
         ...state,
         isPending: false,
-        error: action.payload.error.detail,
+        error: action.payload.error.message,
       };
 
     case USER_EXISTS_FULFILLED:
