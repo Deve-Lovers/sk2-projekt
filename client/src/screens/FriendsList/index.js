@@ -5,7 +5,7 @@ import { users } from 'sk/src/helpers/mocks/usersMock';
 import { StyleSheet, Text, View } from 'react-native';
 import { theme } from 'sk/src/helpers/theme';
 
-function FriendsList() {
+function FriendsList(props) {
   const message =
     'Brak znajomych do wyświetlenia. Poznaj nowe osoby dodając je w zakładce \n"Dodaj znajomych"';
 
@@ -15,10 +15,20 @@ function FriendsList() {
     </View>
   );
 
+  const goToChat = (userData) => {
+    props.navigation.navigate('Chat', { user: userData });
+  };
+
   return (
     <Screen>
       {users.map((user, index) => (
-        <ListItem name={`${user.name} ${user.surname}`} color={index % 5} />
+        <ListItem
+          name={`${user.name} ${user.surname}`}
+          color={index % 5}
+          onPress={() => {
+            goToChat(user);
+          }}
+        />
       ))}
       {!users && renderNoFriends()}
     </Screen>
