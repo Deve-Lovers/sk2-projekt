@@ -1,5 +1,5 @@
 import { defaultHeaders } from 'sk/api/headers';
-import { auth, setUrl, urls } from 'sk/api/urls';
+import { setProxyUrl, urls } from 'sk/api/urls';
 import {
   CLEAR_STATE,
   POST_USER_LOGIN_FULFILLED,
@@ -16,11 +16,16 @@ import {
 
 export function postUserLogin(email, password) {
   return async (dispatch) => {
+    const payload = {
+      method: 'POST',
+      endpoint: urls.LOGIN,
+      payload: { email, password },
+    };
     dispatch({ type: POST_USER_LOGIN_PENDING });
-    return await fetch(setUrl(auth, urls.LOGIN), {
+    return await fetch(setProxyUrl(), {
       headers: defaultHeaders(),
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(payload),
     })
       .then(async (response) => {
         if (response.status === 200 || response.status === 204) {
@@ -45,11 +50,16 @@ export function postUserLogin(email, password) {
 
 export function postUserRegister(email, name, surname, password) {
   return async (dispatch) => {
+    const payload = {
+      method: 'POST',
+      endpoint: urls.REGISTER,
+      payload: { email, name, surname, password },
+    };
     dispatch({ type: POST_USER_REGISTER_PENDING });
-    return await fetch(setUrl(auth, urls.REGISTER), {
+    return await fetch(setProxyUrl(), {
       headers: defaultHeaders(),
       method: 'POST',
-      body: JSON.stringify({ username: email, email, name, surname, password }),
+      body: JSON.stringify(payload),
     })
       .then(async (response) => {
         if (response.status === 201) {
@@ -74,11 +84,12 @@ export function postUserRegister(email, name, surname, password) {
 
 export function checkUserExistence(email, password) {
   return async (dispatch) => {
+    const payload = { method: 'POST', endpoint: urls.EXIST, payload: { email, password } };
     dispatch({ type: USER_EXISTS_PENDING });
-    return await fetch(setUrl(auth, urls.EXIST), {
+    return await fetch(setProxyUrl(), {
       headers: defaultHeaders(),
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(payload),
     })
       .then(async (response) => {
         if (response.status === 200 || response.status === 204) {
