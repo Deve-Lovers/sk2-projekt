@@ -28,14 +28,14 @@ export default (state = initialState, action) => {
       return {
         ...state,
         otherFriends: action.payload.data,
-        isPending: true,
+        isPending: false,
         error: '',
       };
     case GET_USER_FRIENDS_FULFILLED:
       return {
         ...state,
         userFriends: action.payload.data,
-        isPending: true,
+        isPending: false,
         error: '',
       };
 
