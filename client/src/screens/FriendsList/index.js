@@ -1,13 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ListItem from 'sk/src/components/baseComponents/ListItem';
 import Screen from 'sk/src/components/baseComponents/Screen';
-import { users } from 'sk/src/helpers/mocks/usersMock';
-import { StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { theme } from 'sk/src/helpers/theme';
+import { connect } from 'react-redux';
+import { getUserFriendsList } from 'sk/store/Friends/actions';
 
-function FriendsList() {
+function FriendsList({ userFriends, getUserFriendsList: _getUserFriendsList, error, isPending }) {
   const message =
     'Brak znajomych do wyświetlenia. Poznaj nowe osoby dodając je w zakładce \n"Dodaj znajomych"';
+
+  useEffect(() => {
+    _getUserFriendsList();
+  }, []);
 
   const renderNoFriends = () => (
     <View style={styles.container}>
@@ -15,17 +20,40 @@ function FriendsList() {
     </View>
   );
 
-  return (
-    <Screen>
-      {users.map((user, index) => (
-        <ListItem name={`${user.name} ${user.surname}`} color={index % 5} />
-      ))}
-      {!users && renderNoFriends()}
-    </Screen>
-  );
+  const renderContent = () => {
+    if (error) {
+      return renderNoFriends();
+    }
+
+    if (isPending) {
+      return <Text>Loading...</Text>;
+    }
+
+    return (
+      <FlatList
+        data={userFriends}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item, index }) => (
+          <ListItem name={`${item.name} ${item.surname}`} color={index % 5} />
+        )}
+      />
+    );
+  };
+
+  return <Screen>{renderContent()}</Screen>;
 }
 
-export default FriendsList;
+const mapStateToProps = (state) => ({
+  userFriends: state.friends.userFriends,
+  isPending: state.friends.isPending,
+  error: state.friends.error,
+});
+
+const mapDispatchToProps = (dispatch) => ({
+  getUserFriendsList: () => dispatch(getUserFriendsList()),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(FriendsList);
 
 const styles = StyleSheet.create({
   container: {

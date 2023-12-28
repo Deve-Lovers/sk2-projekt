@@ -1,12 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ListItem from 'sk/src/components/baseComponents/ListItem';
 import Screen from 'sk/src/components/baseComponents/Screen';
 import { users } from 'sk/src/helpers/mocks/usersMock';
 import { StyleSheet, Text, View } from 'react-native';
 import { theme } from 'sk/src/helpers/theme';
+import { connect } from 'react-redux';
+import { getOtherUsersList } from 'sk/store/Friends/actions';
 
-function AddFriendList() {
+function AddFriendList({ getOtherUsersList: _getOtherUsersList }) {
   const message = 'Brak nowych osób do dodania. \nSprawdź zakładkę "Znajomi"';
+
+  useEffect(() => {
+    _getOtherUsersList();
+  }, []);
 
   const renderNoContacts = () => (
     <View style={styles.container}>
@@ -23,8 +29,17 @@ function AddFriendList() {
     </Screen>
   );
 }
+const mapStateToProps = (state) => ({
+  userFriends: state.friends.userFriends,
+  isPending: state.friends.isPending,
+  error: state.friends.error,
+});
 
-export default AddFriendList;
+const mapDispatchToProps = (dispatch) => ({
+  getOtherUsersList: () => dispatch(getOtherUsersList()),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(AddFriendList);
 
 const styles = StyleSheet.create({
   container: {
