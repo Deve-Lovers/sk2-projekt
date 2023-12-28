@@ -6,7 +6,8 @@ import { theme } from 'sk/src/helpers/theme';
 import { connect } from 'react-redux';
 import { getUserFriendsList } from 'sk/store/Friends/actions';
 
-function FriendsList({ userFriends, getUserFriendsList: _getUserFriendsList, error, isPending }) {
+function FriendsList(props) {
+  const { userFriends, getUserFriendsList: _getUserFriendsList, error, isPending } = props;
   const message =
     'Brak znajomych do wyświetlenia. Poznaj nowe osoby dodając je w zakładce \n"Dodaj znajomych"';
 
@@ -19,6 +20,10 @@ function FriendsList({ userFriends, getUserFriendsList: _getUserFriendsList, err
       <Text style={styles.text}>{message}</Text>
     </View>
   );
+
+  const goToChat = (userData) => {
+    props.navigation.navigate('Chat', { user: userData });
+  };
 
   const renderContent = () => {
     if (error) {
@@ -34,7 +39,13 @@ function FriendsList({ userFriends, getUserFriendsList: _getUserFriendsList, err
         data={userFriends}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item, index }) => (
-          <ListItem name={`${item.name} ${item.surname}`} color={index % 5} />
+          <ListItem
+            name={`${item.name} ${item.surname}`}
+            color={index % 5}
+            onPress={() => {
+              goToChat(item);
+            }}
+          />
         )}
       />
     );
