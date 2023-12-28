@@ -9,7 +9,8 @@ export const urls = {
   LOGIN: 'login',
   EXIST: 'user-exists',
   REGISTER: 'register',
-  CLINICS: 'clinics',
+  FRIENDS: 'list-my-friends',
+  OTHER: 'list-others',
 };
 
 export const auth = 'castle';
