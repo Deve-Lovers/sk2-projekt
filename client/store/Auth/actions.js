@@ -53,7 +53,7 @@ export function postUserRegister(email, name, surname, password) {
     const payload = {
       method: 'POST',
       endpoint: urls.REGISTER,
-      payload: { email, name, surname, password },
+      payload: { name, surname, email, password },
     };
     dispatch({ type: POST_USER_REGISTER_PENDING });
     return await fetch(setProxyUrl(), {
