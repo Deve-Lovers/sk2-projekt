@@ -65,3 +65,7 @@ package-lock.json
 # object files
 *.out
 *.sqlite3
+
+# python venv
+venv/
+__pycache__/
