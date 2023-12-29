@@ -5,6 +5,9 @@ import {
   GET_OTHER_USERS_PENDING,
   GET_OTHER_USERS_FULFILLED,
   GET_OTHER_USERS_REJECTED,
+  ADD_FRIEND_PENDING,
+  ADD_FRIEND_FULFILLED,
+  ADD_FRIEND_REJECTED,
 } from './actionTypes';
 
 const initialState = {
@@ -47,6 +50,9 @@ export default (state = initialState, action) => {
         error: action.payload.error.message,
       };
 
+    case ADD_FRIEND_PENDING:
+    case ADD_FRIEND_FULFILLED:
+    case ADD_FRIEND_REJECTED:
     default:
       return state;
   }

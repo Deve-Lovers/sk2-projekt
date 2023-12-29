@@ -11,6 +11,7 @@ export const urls = {
   REGISTER: 'register',
   FRIENDS: 'list-my-friends',
   OTHER: 'list-others',
+  ADD: 'add-friend',
 };
 
 export const auth = 'castle';

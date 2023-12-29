@@ -7,6 +7,9 @@ import {
   GET_OTHER_USERS_PENDING,
   GET_OTHER_USERS_FULFILLED,
   GET_OTHER_USERS_REJECTED,
+  ADD_FRIEND_PENDING,
+  ADD_FRIEND_FULFILLED,
+  ADD_FRIEND_REJECTED,
 } from './actionTypes';
 
 export function getUserFriendsList() {
@@ -71,6 +74,40 @@ export function getOtherUsersList() {
       .catch((error) =>
         dispatch({
           type: GET_OTHER_USERS_REJECTED,
+          payload: { error },
+        })
+      );
+  };
+}
+
+export function addFriend(userId) {
+  return async (dispatch) => {
+    const payload = {
+      method: 'POST',
+      endpoint: urls.ADD,
+      payload: { user_id: `${userId}` },
+    };
+    dispatch({ type: ADD_FRIEND_PENDING });
+    return await fetch(setProxyUrl(), {
+      headers: authorizationHeaders(),
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+      .then(async (response) => {
+        if (response.status === 200 || response.status === 204) {
+          return await response.json();
+        }
+        throw await response.json();
+      })
+      .then((responseData) =>
+        dispatch({
+          type: ADD_FRIEND_FULFILLED,
+          payload: { data: responseData },
+        })
+      )
+      .catch((error) =>
+        dispatch({
+          type: ADD_FRIEND_REJECTED,
           payload: { error },
         })
       );
