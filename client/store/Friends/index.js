@@ -11,6 +11,9 @@ import {
   GET_MESSAGES_PENDING,
   GET_MESSAGES_FULFILLED,
   GET_MESSAGES_REJECTED,
+  SEND_MESSAGE_PENDING,
+  SEND_MESSAGE_FULFILLED,
+  SEND_MESSAGE_REJECTED,
 } from './actionTypes';
 
 const initialState = {
@@ -59,6 +62,7 @@ export default (state = initialState, action) => {
     case GET_OTHER_USERS_REJECTED:
     case GET_USER_FRIENDS_REJECTED:
     case GET_MESSAGES_REJECTED:
+    case SEND_MESSAGE_REJECTED:
       return {
         ...state,
         isPending: false,
@@ -68,6 +72,8 @@ export default (state = initialState, action) => {
     case ADD_FRIEND_PENDING:
     case ADD_FRIEND_FULFILLED:
     case ADD_FRIEND_REJECTED:
+    case SEND_MESSAGE_PENDING:
+    case SEND_MESSAGE_FULFILLED:
     default:
       return state;
   }

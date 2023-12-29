@@ -13,6 +13,9 @@ import {
   GET_MESSAGES_PENDING,
   GET_MESSAGES_FULFILLED,
   GET_MESSAGES_REJECTED,
+  SEND_MESSAGE_PENDING,
+  SEND_MESSAGE_FULFILLED,
+  SEND_MESSAGE_REJECTED,
 } from './actionTypes';
 
 export function getUserFriendsList() {
@@ -145,6 +148,41 @@ export function getMessages(userId) {
       .catch((error) =>
         dispatch({
           type: GET_MESSAGES_REJECTED,
+          payload: { error },
+        })
+      );
+  };
+}
+
+export function sendMessage(userId, message) {
+  return async (dispatch) => {
+    const payload = {
+      method: 'POST',
+      endpoint: urls.MESSAGE,
+      payload: { user_id: `${userId}`, message },
+    };
+    dispatch({ type: SEND_MESSAGE_PENDING });
+    return await fetch(setProxyUrl(), {
+      headers: authorizationHeaders(),
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+      .then(async (response) => {
+        if (response.status === 200 || response.status === 204) {
+          return await response.json();
+        }
+        throw await response.json();
+      })
+      .then((responseData) =>
+        dispatch({
+          type: SEND_MESSAGE_FULFILLED,
+
+          payload: { data: responseData },
+        })
+      )
+      .catch((error) =>
+        dispatch({
+          type: SEND_MESSAGE_REJECTED,
           payload: { error },
         })
       );

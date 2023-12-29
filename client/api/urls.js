@@ -13,6 +13,7 @@ export const urls = {
   OTHER: 'list-others',
   ADD: 'add-friend',
   CHAT: 'chat',
+  MESSAGE: 'message',
 };
 
 export const auth = 'castle';
