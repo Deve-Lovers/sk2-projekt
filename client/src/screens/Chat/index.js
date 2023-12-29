@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GiftedChat } from 'react-native-gifted-chat';
 
 import Screen from 'sk/src/components/baseComponents/Screen';
 import ScreenHeader from 'sk/src/components/baseComponents/ScreenHeader';
-import { chatMessages } from 'sk/src/helpers/mocks/chatMock';
+import { getMessages } from 'sk/store/Friends/actions';
+import { connect } from 'react-redux';
 
-function Chat({ navigation, route }) {
+function Chat({ navigation, route, getMessages: _getMessages, chatMessages, accessToken }) {
   const { user } = route.params;
+
+  useEffect(() => {
+    _getMessages(user.id);
+  }, []);
 
   const onSend = (mess) => {
     console.log(mess);
@@ -26,11 +31,22 @@ function Chat({ navigation, route }) {
           onSend(messages);
         }}
         user={{
-          _id: 0,
+          _id: Number(accessToken),
         }}
       />
     </Screen>
   );
 }
 
-export default Chat;
+const mapStateToProps = (state) => ({
+  chatMessages: state.friends.chatMessages,
+  isPending: state.friends.isPending,
+  error: state.friends.error,
+  accessToken: state.auth.accessToken,
+});
+
+const mapDispatchToProps = (dispatch) => ({
+  getMessages: (id) => dispatch(getMessages(id)),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(Chat);
