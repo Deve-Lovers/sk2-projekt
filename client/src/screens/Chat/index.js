@@ -3,10 +3,17 @@ import { GiftedChat } from 'react-native-gifted-chat';
 
 import Screen from 'sk/src/components/baseComponents/Screen';
 import ScreenHeader from 'sk/src/components/baseComponents/ScreenHeader';
-import { getMessages } from 'sk/store/Friends/actions';
+import { getMessages, sendMessage } from 'sk/store/Friends/actions';
 import { connect } from 'react-redux';
 
-function Chat({ navigation, route, getMessages: _getMessages, chatMessages, accessToken }) {
+function Chat({
+  navigation,
+  route,
+  chatMessages,
+  accessToken,
+  getMessages: _getMessages,
+  sendMessage: _sendMessage,
+}) {
   const { user } = route.params;
 
   useEffect(() => {
@@ -14,7 +21,7 @@ function Chat({ navigation, route, getMessages: _getMessages, chatMessages, acce
   }, []);
 
   const onSend = (mess) => {
-    console.log(mess);
+    _sendMessage(user.id, mess[0].text).then(_getMessages(user.id));
   };
 
   return (
@@ -47,6 +54,7 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = (dispatch) => ({
   getMessages: (id) => dispatch(getMessages(id)),
+  sendMessage: (id, message) => dispatch(sendMessage(id, message)),
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(Chat);
