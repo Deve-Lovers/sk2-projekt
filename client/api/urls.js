@@ -12,6 +12,7 @@ export const urls = {
   FRIENDS: 'list-my-friends',
   OTHER: 'list-others',
   ADD: 'add-friend',
+  CHAT: 'chat',
 };
 
 export const auth = 'castle';

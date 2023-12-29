@@ -8,12 +8,16 @@ import {
   ADD_FRIEND_PENDING,
   ADD_FRIEND_FULFILLED,
   ADD_FRIEND_REJECTED,
+  GET_MESSAGES_PENDING,
+  GET_MESSAGES_FULFILLED,
+  GET_MESSAGES_REJECTED,
 } from './actionTypes';
 
 const initialState = {
   isPending: false,
   userFriends: [],
   otherFriends: [],
+  chatMessages: [],
   error: '',
 };
 
@@ -21,9 +25,18 @@ export default (state = initialState, action) => {
   switch (action.type) {
     case GET_USER_FRIENDS_PENDING:
     case GET_OTHER_USERS_PENDING:
+    case GET_MESSAGES_PENDING:
       return {
         ...state,
         isPending: true,
+        error: '',
+      };
+
+    case GET_MESSAGES_FULFILLED:
+      return {
+        ...state,
+        chatMessages: action.payload.data,
+        isPending: false,
         error: '',
       };
 
@@ -34,6 +47,7 @@ export default (state = initialState, action) => {
         isPending: false,
         error: '',
       };
+
     case GET_USER_FRIENDS_FULFILLED:
       return {
         ...state,
@@ -44,6 +58,7 @@ export default (state = initialState, action) => {
 
     case GET_OTHER_USERS_REJECTED:
     case GET_USER_FRIENDS_REJECTED:
+    case GET_MESSAGES_REJECTED:
       return {
         ...state,
         isPending: false,
