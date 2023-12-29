@@ -4,9 +4,15 @@ import Screen from 'sk/src/components/baseComponents/Screen';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { theme } from 'sk/src/helpers/theme';
 import { connect } from 'react-redux';
-import { getOtherUsersList } from 'sk/store/Friends/actions';
+import { addFriend, getOtherUsersList, getUserFriendsList } from 'sk/store/Friends/actions';
 
-function AddFriendList({ getOtherUsersList: _getOtherUsersList, otherFriends, isPending, error }) {
+function AddFriendList({
+  getOtherUsersList: _getOtherUsersList,
+  getUserFriendsList: _getUserFriendsList,
+  addFriend: _addFriend,
+  otherFriends,
+  isPending,
+}) {
   const message = 'Brak nowych osób do dodania. \nSprawdź zakładkę "Znajomi"';
 
   useEffect(() => {
@@ -19,8 +25,13 @@ function AddFriendList({ getOtherUsersList: _getOtherUsersList, otherFriends, is
     </View>
   );
 
+  const reloadFriendLists = () => {
+    _getOtherUsersList();
+    _getUserFriendsList();
+  };
+
   const renderContent = () => {
-    if (error) {
+    if (!otherFriends.length) {
       return renderNoContacts();
     }
 
@@ -33,7 +44,12 @@ function AddFriendList({ getOtherUsersList: _getOtherUsersList, otherFriends, is
         data={otherFriends}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item, index }) => (
-          <ListItem name={`${item.name} ${item.surname}`} addFriend color={index % 5} />
+          <ListItem
+            name={`${item.name} ${item.surname}`}
+            addFriend
+            color={index % 5}
+            onPressIcon={() => _addFriend(item.id).then(reloadFriendLists)}
+          />
         )}
       />
     );
@@ -49,6 +65,8 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = (dispatch) => ({
   getOtherUsersList: () => dispatch(getOtherUsersList()),
+  getUserFriendsList: () => dispatch(getUserFriendsList()),
+  addFriend: (id) => dispatch(addFriend(id)),
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(AddFriendList);
