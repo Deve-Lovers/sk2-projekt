@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import { getUserFriendsList } from 'sk/store/Friends/actions';
 
 function FriendsList(props) {
-  const { userFriends, getUserFriendsList: _getUserFriendsList, error, isPending } = props;
+  const { userFriends, getUserFriendsList: _getUserFriendsList, isPending } = props;
   const message =
     'Brak znajomych do wyświetlenia. Poznaj nowe osoby dodając je w zakładce \n"Dodaj znajomych"';
 
@@ -26,7 +26,7 @@ function FriendsList(props) {
   };
 
   const renderContent = () => {
-    if (error) {
+    if (!userFriends.length) {
       return renderNoFriends();
     }
 
