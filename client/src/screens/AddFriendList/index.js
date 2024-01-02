@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import ListItem from 'sk/src/components/baseComponents/ListItem';
 import Screen from 'sk/src/components/baseComponents/Screen';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { theme } from 'sk/src/helpers/theme';
 import { connect } from 'react-redux';
 import { addFriend, getOtherUsersList, getUserFriendsList } from 'sk/store/Friends/actions';
@@ -15,9 +15,19 @@ function AddFriendList({
 }) {
   const message = 'Brak nowych osób do dodania. \nSprawdź zakładkę "Znajomi"';
 
+  const [refreshing, setRefreshing] = useState(true);
+
   useEffect(() => {
-    _getOtherUsersList();
+    onRefresh();
   }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      _getOtherUsersList();
+      setRefreshing(false);
+    }, 500);
+  };
 
   const renderNoContacts = () => (
     <View style={styles.container}>
@@ -31,12 +41,12 @@ function AddFriendList({
   };
 
   const renderContent = () => {
-    if (!otherFriends.length) {
-      return renderNoContacts();
+    if (refreshing && !otherFriends.length) {
+      return <ActivityIndicator size="large" />;
     }
 
-    if (isPending) {
-      return <Text>Loading...</Text>;
+    if (!otherFriends.length && !isPending) {
+      return renderNoContacts();
     }
 
     return (
@@ -51,6 +61,7 @@ function AddFriendList({
             onPressIcon={() => _addFriend(item.id).then(reloadFriendLists)}
           />
         )}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       />
     );
   };
