@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GiftedChat } from 'react-native-gifted-chat';
 
 import Screen from 'sk/src/components/baseComponents/Screen';
@@ -17,6 +17,7 @@ function Chat({
   getUserFriendsList: _getUserFriendsList,
 }) {
   const { user } = route.params;
+  const [currentMessages, setCurrentMessages] = useState([]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -34,6 +35,10 @@ function Chat({
     };
   }, []);
 
+  useEffect(() => {
+    setCurrentMessages(chatMessages);
+  }, [JSON.stringify(chatMessages)]);
+
   const onSend = (mess) => {
     _sendMessage(user.id, mess[0].text);
     _getMessages(user.id, `${user.name} ${user.surname}`);
@@ -49,7 +54,7 @@ function Chat({
       />
       <GiftedChat
         placeholder="Napisz wiadomość"
-        messages={chatMessages}
+        messages={currentMessages}
         onSend={(messages) => {
           onSend(messages);
         }}
