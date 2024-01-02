@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import ListItem from 'sk/src/components/baseComponents/ListItem';
 import Screen from 'sk/src/components/baseComponents/Screen';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { theme } from 'sk/src/helpers/theme';
 import { connect } from 'react-redux';
 import { getUserFriendsList } from 'sk/store/Friends/actions';
@@ -11,9 +11,19 @@ function FriendsList(props) {
   const message =
     'Brak znajomych do wyświetlenia. Poznaj nowe osoby dodając je w zakładce \n"Dodaj znajomych"';
 
+  const [refreshing, setRefreshing] = useState(true);
+
   useEffect(() => {
-    _getUserFriendsList();
+    onRefresh();
   }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      _getUserFriendsList();
+      setRefreshing(false);
+    }, 500); // Symulacja opóźnienia sieci
+  };
 
   const renderNoFriends = () => (
     <View style={styles.container}>
@@ -26,12 +36,12 @@ function FriendsList(props) {
   };
 
   const renderContent = () => {
-    if (!userFriends.length) {
-      return renderNoFriends();
+    if (refreshing && !userFriends.length) {
+      return <ActivityIndicator size="large" />;
     }
 
-    if (isPending) {
-      return <Text>Loading...</Text>;
+    if (!userFriends.length && !isPending) {
+      return renderNoFriends();
     }
 
     return (
@@ -47,6 +57,7 @@ function FriendsList(props) {
             }}
           />
         )}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       />
     );
   };
