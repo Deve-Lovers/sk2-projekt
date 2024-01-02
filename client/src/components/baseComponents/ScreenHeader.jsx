@@ -6,9 +6,10 @@ import Close from 'sk/src/assets/icons/close.png';
 
 import { theme } from 'sk/src/helpers/theme';
 
-function ScreenHeader({ title, isButtonVisible, navigation }) {
+function ScreenHeader({ title, isButtonVisible, navigation, onClose }) {
   const handleClose = () => {
     navigation.goBack();
+    onClose();
   };
 
   return (
@@ -49,10 +50,12 @@ const styles = StyleSheet.create({
 ScreenHeader.propTypes = {
   title: PropTypes.string.isRequired,
   isButtonVisible: PropTypes.bool,
+  onClose: PropTypes.func,
 };
 
 ScreenHeader.defaultProps = {
   isButtonVisible: false,
+  onClose: () => {},
 };
 
 export default ScreenHeader;
