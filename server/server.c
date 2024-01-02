@@ -729,7 +729,7 @@ void endpoint_list_my_friends(sqlite3 *db, Response *response_object, char *resp
 
     if (friends == NULL || friend_count == 0) {
         set_status_code_404(response_object);
-        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"No friends found.\" }");
+        snprintf(response, MAX_BUFFER_SIZE, "[]");
         return;
     }
 
@@ -757,8 +757,8 @@ void endpoint_list_others(sqlite3 *db, Response *response_object, char *response
     Friend *others = get_others(db, authenticated_user.user_id, &user_count);
 
     if (others == NULL || user_count == 0) {
-        set_status_code_404(response_object);
-        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"No other users found.\" }");
+        set_status_code_200(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "[]");
         return;
     }
 
@@ -800,8 +800,8 @@ void endpoint_chat(sqlite3 *db, const char *request, Response *response_object, 
     printf("messages count %d\n", message_count);
 
     if (messages == NULL) {
-        set_status_code_404(response_object);
-        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"No messages found.\" }");
+        set_status_code_200(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "[]");
         return;
     }
 
