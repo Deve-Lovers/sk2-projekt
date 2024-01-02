@@ -22,7 +22,7 @@ function FriendsList(props) {
     setTimeout(() => {
       _getUserFriendsList();
       setRefreshing(false);
-    }, 500); // Symulacja opóźnienia sieci
+    }, 500);
   };
 
   const renderNoFriends = () => (
