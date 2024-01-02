@@ -120,7 +120,7 @@ export function addFriend(userId) {
   };
 }
 
-export function getMessages(userId) {
+export function getMessages(userId, userName) {
   return async (dispatch) => {
     const payload = {
       method: 'POST',
@@ -142,7 +142,7 @@ export function getMessages(userId) {
       .then((responseData) =>
         dispatch({
           type: GET_MESSAGES_FULFILLED,
-          payload: { data: responseData },
+          payload: { data: responseData, userId, userName },
         })
       )
       .catch((error) =>

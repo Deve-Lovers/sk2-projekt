@@ -38,7 +38,12 @@ export default (state = initialState, action) => {
     case GET_MESSAGES_FULFILLED:
       return {
         ...state,
-        chatMessages: action.payload.data,
+        chatMessages: action.payload.data.map((item) => {
+          if (item.user._id !== Number(action.payload.userId)) {
+            return { ...item, user: { ...item.user, name: 'T Y' } };
+          }
+          return { ...item, user: { ...item.user, name: action.payload.userName } };
+        }),
         isPending: false,
         error: '',
       };
