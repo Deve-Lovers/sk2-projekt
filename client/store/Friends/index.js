@@ -62,6 +62,7 @@ export default (state = initialState, action) => {
         userFriends: action.payload.data,
         isPending: false,
         error: '',
+        chatMessages: [],
       };
 
     case GET_OTHER_USERS_REJECTED:
