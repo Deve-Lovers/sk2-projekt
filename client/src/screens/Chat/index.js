@@ -3,8 +3,9 @@ import { GiftedChat } from 'react-native-gifted-chat';
 
 import Screen from 'sk/src/components/baseComponents/Screen';
 import ScreenHeader from 'sk/src/components/baseComponents/ScreenHeader';
-import { getMessages, sendMessage } from 'sk/store/Friends/actions';
+import { getMessages, getUserFriendsList, sendMessage } from 'sk/store/Friends/actions';
 import { connect } from 'react-redux';
+import { useFocusEffect } from '@react-navigation/native';
 
 function Chat({
   navigation,
@@ -13,15 +14,29 @@ function Chat({
   accessToken,
   getMessages: _getMessages,
   sendMessage: _sendMessage,
+  getUserFriendsList: _getUserFriendsList,
 }) {
   const { user } = route.params;
 
+  useFocusEffect(
+    React.useCallback(() => {
+      _getMessages(user.id, `${user.name} ${user.surname}`);
+    }, [])
+  );
+
   useEffect(() => {
-    _getMessages(user.id);
+    const interval = setInterval(() => {
+      _getMessages(user.id, `${user.name} ${user.surname}`);
+    }, 500);
+
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
   const onSend = (mess) => {
-    _sendMessage(user.id, mess[0].text).then(_getMessages(user.id));
+    _sendMessage(user.id, mess[0].text);
+    _getMessages(user.id, `${user.name} ${user.surname}`);
   };
 
   return (
@@ -30,6 +45,7 @@ function Chat({
         title={`${user.name} ${user.surname}`}
         navigation={navigation}
         isButtonVisible
+        onClose={() => _getUserFriendsList()}
       />
       <GiftedChat
         placeholder="Napisz wiadomość"
@@ -40,6 +56,7 @@ function Chat({
         user={{
           _id: Number(accessToken),
         }}
+        showUserAvatar
       />
     </Screen>
   );
@@ -53,8 +70,9 @@ const mapStateToProps = (state) => ({
 });
 
 const mapDispatchToProps = (dispatch) => ({
-  getMessages: (id) => dispatch(getMessages(id)),
+  getMessages: (id, name) => dispatch(getMessages(id, name)),
   sendMessage: (id, message) => dispatch(sendMessage(id, message)),
+  getUserFriendsList: () => dispatch(getUserFriendsList()),
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(Chat);
