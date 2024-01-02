@@ -394,7 +394,7 @@ void setup_db(sqlite3 *db, int rc) {
 
 ChatMessage* get_chat(sqlite3 *db, int author_id, int target_id, int *message_count) {
     char sql[1024];
-    sprintf(sql, "SELECT * FROM messages WHERE (author_id = %d AND target_id = %d) OR (author_id = %d AND target_id = %d);", author_id, target_id, target_id, author_id);
+    sprintf(sql, "SELECT * FROM messages WHERE (author_id = %d AND target_id = %d) OR (author_id = %d AND target_id = %d) order by created DESC;", author_id, target_id, target_id, author_id);
 
     ChatMessages chatData = {NULL, 0};
     int rc = sqlite3_exec(db, sql, chat_callback, &chatData, NULL);
