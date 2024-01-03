@@ -11,7 +11,7 @@ import AddFriendList from 'sk/src/screens/AddFriendList';
 import Profile from 'sk/src/screens/Profile';
 import Chat from 'sk/src/screens/Chat';
 import { theme } from 'sk/src/helpers/theme';
-import { Image, StyleSheet } from 'react-native';
+import { Image, StyleSheet, type ImageStyle } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -20,14 +20,18 @@ function TabStack(): JSX.Element {
   return (
     <Tab.Navigator
       initialRouteName="FriendsList"
-      screenOptions={{ headerShown: false, tabBarActiveTintColor: theme.colors.actionPrimary }}
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: theme.colors.actionPrimary,
+        tabBarInactiveTintColor: theme.colors.actionDisabled,
+      }}
     >
       <Tab.Screen
         name="FriendsList"
         component={FriendsList}
         options={{
           title: 'Znajomi',
-          tabBarIcon: () => <Image source={Friends} style={styles.icon} />,
+          tabBarIcon: ({ focused }) => <Image source={Friends} style={styles.icon(focused)} />,
         }}
       />
       <Tab.Screen
@@ -35,7 +39,7 @@ function TabStack(): JSX.Element {
         component={AddFriendList}
         options={{
           title: 'Dodaj znajomych',
-          tabBarIcon: () => <Image source={AddUser} style={styles.icon} />,
+          tabBarIcon: ({ focused }) => <Image source={AddUser} style={styles.icon(focused)} />,
         }}
       />
       <Tab.Screen
@@ -43,7 +47,7 @@ function TabStack(): JSX.Element {
         component={Profile}
         options={{
           title: 'Twój profil',
-          tabBarIcon: () => <Image source={UserProfile} style={styles.icon} />,
+          tabBarIcon: ({ focused }) => <Image source={UserProfile} style={styles.icon(focused)} />,
         }}
       />
     </Tab.Navigator>
@@ -61,11 +65,16 @@ function MainStack(): JSX.Element {
 
 export default MainStack;
 
-const styles = StyleSheet.create({
-  icon: {
-    width: 25,
-    height: 25,
-    resizeMode: 'contain',
-    tintColor: theme.colors.actionPrimary,
-  },
+interface Style {
+  icon: ImageStyle;
+}
+
+const styles = StyleSheet.create<Style>({
+  icon: (focused: boolean): Style =>
+    ({
+      width: 25,
+      height: 25,
+      resizeMode: 'contain',
+      tintColor: focused ? theme.colors.actionPrimary : theme.colors.actionDisabled,
+    } as any),
 });
