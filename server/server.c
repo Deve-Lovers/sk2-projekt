@@ -167,20 +167,11 @@ void get_payload(const char *request, Payload *payload, int expected_size) {
 
 
 int validate_payload(char* required_payload[], size_t payloadSize, Payload *payload) {
-    printf("Keys:\n");
-    for (size_t i = 0; i < payload->size; ++i) {
-        printf("Key[%zu]: \"%s\"\n", i, payload->keys[i]);
-        printf("Value[%zu]: \"%s\"\n", i, payload->values[i]);
-    }
-
     for (size_t i = 0; i < payloadSize; i++) {
-
         if(strcmp(required_payload[i], payload->keys[i]) != 0) {
-            printf("left:%sright:%sKONIEC \n", required_payload[i], payload->keys[i]);
             return 0;
         }
     }
-
     return 1;
 }
 
@@ -304,6 +295,7 @@ int callback(void *NotUsed, int argc, char **argv, char **azColName) {
 
 DbUser get_user_by_email(sqlite3 *db, char * user_email, int *ok) {
     DbUser user = {0};
+    user.id = 0;
     char sql[255];
     sprintf(sql, "SELECT * FROM users WHERE email=\"%s\"", user_email);
     int rc = sqlite3_exec(db, sql, user_callback, &user, 0);
@@ -317,20 +309,16 @@ DbUser get_user_by_email(sqlite3 *db, char * user_email, int *ok) {
 }
 
 int add_user(sqlite3 *db, const char *name, const char *surname, const char *email, const char *password) {
-    printf("PRINT0\n");
     char sql[255];
     sprintf(sql, "INSERT INTO users (email, name, surname, password) VALUES ('%s', '%s', '%s', '%s');", email, name, surname, password);
 
     //printf("SQLPRZED: %s\n", sql);
     int rc = sqlite3_exec(db, sql, 0, 0, 0);
 
-    printf("PRINT0,5\n");
     if (rc != SQLITE_OK) {
-        printf("PRINT1\n");
         fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
         return 0;
     } else {
-        printf("User added successfully.\n");
         return 1;
     }
 }
@@ -372,7 +360,7 @@ void setup_db(sqlite3 *db, int rc) {
         sqlite3_close(db);
         return;
     } else {
-        printf("SQL status OK\n");
+        printf("(database) ::: SQL status OK\n");
     }
 
     // Create 'friends' table
@@ -478,13 +466,12 @@ void log_call(const char * method, const char *path, User user) {
     struct tm * timeinfo;
     time ( &rawtime );
     timeinfo = localtime ( &rawtime );
-    printf ( "New request at: %s", asctime (timeinfo) );
-
+    printf ( "(log:request) New request at: %s", asctime (timeinfo) );
     const char *temp_authorized = "false";
     if(user.is_authenticated == 1) {
         temp_authorized = "true";
     }
-    printf("(log) <-- Method: %s Endpoint: %s Authorized: %s user_id: %d\n", method, path, temp_authorized, user.user_id);
+    printf("(log:request) <-- Method: %s Endpoint: %s Authorized: %s user_id: %d\n\n", method, path, temp_authorized, user.user_id);
     return;
 }
 
@@ -534,7 +521,7 @@ User middleware_auth(const char *request) {
     if (headers_start != NULL && headers_end != NULL) {
         char authorization[MAX_BUFFER_SIZE];
         get_header_value_by_key(headers_start, "Authorization", authorization, sizeof(authorization));
-        printf("Authorization Header: %s\n", authorization);
+        printf("(log:header ) Authorization Header: %s\n", authorization);
         user.user_id = get_user_by_auth_header(authorization);
         if (user.user_id > 0) {
             user.is_authenticated = 1;
@@ -595,7 +582,7 @@ char* convert_friends_to_json(Friend *friends, int friend_count) {
 // ENDPOINTS =================================
 
 
-void endpoint_register(sqlite3 *db, const char *request, Response *response_object, Response *response) {
+void endpoint_register(sqlite3 *db, const char *request, Response *response_object, char *response) {
     Payload payload;
     get_payload(request, &payload, 5);
 
@@ -640,7 +627,7 @@ void endpoint_register(sqlite3 *db, const char *request, Response *response_obje
 }
 
 
-void endpoint_login(sqlite3 *db, const char *request, Response *response_object, Response *response) {
+void endpoint_login(sqlite3 *db, const char *request, Response *response_object, char *response) {
     Payload payload;
     get_payload(request, &payload, 2);
 
@@ -663,7 +650,7 @@ void endpoint_login(sqlite3 *db, const char *request, Response *response_object,
     int ok;
     DbUser db_user = get_user_by_email(db, payload.values[0], &ok);
     if (ok == 1) {
-        if(db_user.id == NULL) {
+        if(db_user.id == 0) {
             set_status_code_400(response_object);
             snprintf(response, 100, "{ \"message\": \"User does not exist.\" }");
             return;
@@ -674,7 +661,6 @@ void endpoint_login(sqlite3 *db, const char *request, Response *response_object,
             snprintf(response, 255, "{ \"id\": \"%d\" }", db_user.id);
             return;
         }
-        printf("left:%sright:%sKONIEC \n", db_user.password, payload.values[1]);
         set_status_code_400(response_object);
         snprintf(response, 100, "{ \"message\": \"Invalid password.\" }");
         return;
@@ -684,7 +670,7 @@ void endpoint_login(sqlite3 *db, const char *request, Response *response_object,
     return;
 }
 
-void endpoint_add_friend(sqlite3 *db, const char *request, Response *response_object, Response *response, User authenticated_user) {
+void endpoint_add_friend(sqlite3 *db, const char *request, Response *response_object, char *response, User authenticated_user) {
     Payload payload;
     get_payload(request, &payload, 1);
 
@@ -800,8 +786,6 @@ void endpoint_chat(sqlite3 *db, const char *request, Response *response_object, 
     int message_count;
     ChatMessage *messages = get_chat(db, authenticated_user.user_id, target_id, &message_count);
 
-    printf("messages count %d\n", message_count);
-
     if (messages == NULL) {
         set_status_code_200(response_object);
         snprintf(response, MAX_BUFFER_SIZE, "[]");
@@ -824,7 +808,7 @@ void endpoint_chat(sqlite3 *db, const char *request, Response *response_object, 
 }
 
 
-void endpoint_message(sqlite3 *db, const char *request, Response *response_object, Response *response, User authenticated_user) {
+void endpoint_message(sqlite3 *db, const char *request, Response *response_object, char *response, User authenticated_user) {
     Payload payload;
     get_payload(request, &payload, 2);
 
@@ -859,7 +843,7 @@ void endpoint_message(sqlite3 *db, const char *request, Response *response_objec
     return;
 }
 
-void endpoint_user_exists(sqlite3 *db, const char *request, Response *response_object, Response *response) {
+void endpoint_user_exists(sqlite3 *db, const char *request, Response *response_object, char *response) {
     Payload payload;
     get_payload(request, &payload, 1); // Expecting 1 field in the payload: "email"
 
@@ -873,7 +857,7 @@ void endpoint_user_exists(sqlite3 *db, const char *request, Response *response_o
     DbUser user = get_user_by_email(db, payload.values[0], &ok);
 
     set_status_code_200(response_object);
-    if (ok && user.id != NULL) {
+    if (ok && user.id != 0) {
         snprintf(response, 100, "{ \"exists\": true }");
     } else {
         snprintf(response, 100, "{ \"exists\": false }");
@@ -968,7 +952,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    printf("Server listening on port %d...\n", PORT);
+    printf("(server) ::: Server listening on port %d...\n", PORT);
 
     while (1) {
         // Accept a connection
@@ -977,7 +961,7 @@ int main() {
             continue;
         }
 
-        printf("Connection accepted from %s:%d\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+        printf("(server) ::: Connection accepted from %s:%d\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
 
         // Receive the client's request
         char buffer[MAX_BUFFER_SIZE];
