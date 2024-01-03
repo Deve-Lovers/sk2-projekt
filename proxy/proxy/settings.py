@@ -138,3 +138,6 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 100,
 }
+
+MAIN_SERVER_URL = "http://127.0.0.1:8080/api"
+RETRAYABLE_TIME_DURATION = 0.15
