@@ -37,7 +37,11 @@ function FriendsList(props) {
 
   const renderContent = () => {
     if (refreshing && !userFriends.length) {
-      return <ActivityIndicator size="large" />;
+      return (
+        <View style={styles.container}>
+          <ActivityIndicator size="large" />
+        </View>
+      );
     }
 
     if (!userFriends.length && !isPending) {

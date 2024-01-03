@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ListItem from 'sk/src/components/baseComponents/ListItem';
 import Screen from 'sk/src/components/baseComponents/Screen';
+import Button from 'sk/src/components/baseComponents/Button';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { theme } from 'sk/src/helpers/theme';
 import { connect } from 'react-redux';
@@ -32,6 +33,7 @@ function AddFriendList({
   const renderNoContacts = () => (
     <View style={styles.container}>
       <Text style={styles.text}>{message}</Text>
+      <Button title="Odśwież ↻" variant="primaryOutlined" onPress={onRefresh} />
     </View>
   );
 
@@ -42,7 +44,11 @@ function AddFriendList({
 
   const renderContent = () => {
     if (refreshing && !otherFriends.length) {
-      return <ActivityIndicator size="large" />;
+      return (
+        <View style={styles.container}>
+          <ActivityIndicator size="large" />
+        </View>
+      );
     }
 
     if (!otherFriends.length && !isPending) {
