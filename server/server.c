@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <time.h>
 
 #include <jansson.h>
 
@@ -473,6 +474,12 @@ void sample_database(sqlite3 *db) {
 // LOGS ======================================
 
 void log_call(const char * method, const char *path, User user) {
+    time_t rawtime;
+    struct tm * timeinfo;
+    time ( &rawtime );
+    timeinfo = localtime ( &rawtime );
+    printf ( "New request at: %s", asctime (timeinfo) );
+
     const char *temp_authorized = "false";
     if(user.is_authenticated == 1) {
         temp_authorized = "true";
@@ -481,10 +488,6 @@ void log_call(const char * method, const char *path, User user) {
     return;
 }
 
-void log_response(const char * method, const char *path, User user) {
-    printf("(log) --> Method\n");
-    return;
-}
 // ===========================================
 
 // MIDDLEWARES ===============================
