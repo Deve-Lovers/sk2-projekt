@@ -4,6 +4,7 @@ import { persistReducer, persistStore } from 'redux-persist';
 import { logger } from 'redux-logger';
 import thunk from 'redux-thunk';
 import authReducer from './Auth';
+import friendsReducer from './Friends';
 
 const authPersistConfig = {
   key: 'auth',
@@ -13,6 +14,7 @@ const authPersistConfig = {
 
 const rootPersistedReducer = combineReducers({
   auth: persistReducer(authPersistConfig, authReducer),
+  friends: friendsReducer,
 });
 
 const rootReducer = (state, action) => {

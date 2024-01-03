@@ -7,5 +7,5 @@ export const defaultHeaders = (headers = {}) => ({
 
 export const authorizationHeaders = (headers = {}) => ({
   ...defaultHeaders(headers),
-  Authorization: store.getState().auth.accessToken,
+  Authorization: `CLIENT${store.getState().auth.accessToken}`,
 });

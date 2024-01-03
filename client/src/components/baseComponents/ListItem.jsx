@@ -36,8 +36,9 @@ const styles = StyleSheet.create({
     elevation: 5,
     padding: 10,
     marginTop: 15,
+    marginHorizontal: 5,
     maxHeight: 70,
-    width: '100%',
+    flex: 1,
   },
   addUsr: {
     marginHorizontal: 10,

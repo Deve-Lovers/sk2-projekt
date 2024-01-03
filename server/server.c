@@ -20,8 +20,8 @@
 // ===========================================
 
 #define PORT 8080
-#define MAX_CONNECTIONS 5
-#define MAX_BUFFER_SIZE 1024
+#define MAX_CONNECTIONS 100
+#define MAX_BUFFER_SIZE 10048
 
 
 // STRUCTS ===================================
@@ -165,7 +165,7 @@ void get_payload(const char *request, Payload *payload, int expected_size) {
 }
 
 
-int validate_payload(char* required_payload[], size_t payloadSize, Payload *payload) {    
+int validate_payload(char* required_payload[], size_t payloadSize, Payload *payload) {
     printf("Keys:\n");
     for (size_t i = 0; i < payload->size; ++i) {
         printf("Key[%zu]: \"%s\"\n", i, payload->keys[i]);
@@ -375,14 +375,14 @@ void setup_db(sqlite3 *db, int rc) {
     }
 
     // Create 'friends' table
-    const char *create_friends_table_sql = 
+    const char *create_friends_table_sql =
         "CREATE TABLE IF NOT EXISTS friends ("
         "main_id INTEGER, "
         "related_id INTEGER);";
     rc = sqlite3_exec(db, create_friends_table_sql, 0, 0, 0);
 
     // Create 'messages' table
-    const char *create_messages_table_sql = 
+    const char *create_messages_table_sql =
         "CREATE TABLE IF NOT EXISTS messages ("
         "message_id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "author_id INTEGER, "
@@ -394,7 +394,7 @@ void setup_db(sqlite3 *db, int rc) {
 
 ChatMessage* get_chat(sqlite3 *db, int author_id, int target_id, int *message_count) {
     char sql[1024];
-    sprintf(sql, "SELECT * FROM messages WHERE (author_id = %d AND target_id = %d) OR (author_id = %d AND target_id = %d);", author_id, target_id, target_id, author_id);
+    sprintf(sql, "SELECT * FROM messages WHERE (author_id = %d AND target_id = %d) OR (author_id = %d AND target_id = %d) order by created DESC;", author_id, target_id, target_id, author_id);
 
     ChatMessages chatData = {NULL, 0};
     int rc = sqlite3_exec(db, sql, chat_callback, &chatData, NULL);
@@ -438,13 +438,13 @@ Friend* get_friends(sqlite3 *db, int user_id, int *friend_count) {
 
 Friend* get_others(sqlite3 *db, int user_id, int *other_count) {
     char sql[1024];
-    sprintf(sql, 
+    sprintf(sql,
             "SELECT u.id, u.name, u.surname FROM users u "
             "WHERE u.id NOT IN ("
             "    SELECT related_id FROM friends WHERE main_id = %d"
             "    UNION "
             "    SELECT main_id FROM friends WHERE related_id = %d"
-            ") AND u.id != %d;", 
+            ") AND u.id != %d;",
             user_id, user_id, user_id);
 
     FriendsData othersData = {NULL, 0};
@@ -555,9 +555,9 @@ char* convert_messages_to_json(ChatMessage *messages, int message_count) {
     strcpy(json_result, "[");
     for (int i = 0; i < message_count; i++) {
         char message_json[512];
-        snprintf(message_json, sizeof(message_json), 
-                 "{\"_id\": %d, \"createdAt\": \"%s\", \"text\": \"%s\", \"user\": {\"_id\": %d}}%s", 
-                 messages[i].message_id, messages[i].created, messages[i].text, messages[i].author_id, 
+        snprintf(message_json, sizeof(message_json),
+                 "{\"_id\": %d, \"createdAt\": \"%s\", \"text\": \"%s\", \"user\": {\"_id\": %d}}%s",
+                 messages[i].message_id, messages[i].created, messages[i].text, messages[i].author_id,
                  (i < message_count - 1) ? ", " : "");
 
         strcat(json_result, message_json);
@@ -729,7 +729,7 @@ void endpoint_list_my_friends(sqlite3 *db, Response *response_object, char *resp
 
     if (friends == NULL || friend_count == 0) {
         set_status_code_404(response_object);
-        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"No friends found.\" }");
+        snprintf(response, MAX_BUFFER_SIZE, "[]");
         return;
     }
 
@@ -757,8 +757,8 @@ void endpoint_list_others(sqlite3 *db, Response *response_object, char *response
     Friend *others = get_others(db, authenticated_user.user_id, &user_count);
 
     if (others == NULL || user_count == 0) {
-        set_status_code_404(response_object);
-        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"No other users found.\" }");
+        set_status_code_200(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "[]");
         return;
     }
 
@@ -800,14 +800,14 @@ void endpoint_chat(sqlite3 *db, const char *request, Response *response_object, 
     printf("messages count %d\n", message_count);
 
     if (messages == NULL) {
-        set_status_code_404(response_object);
-        snprintf(response, MAX_BUFFER_SIZE, "{ \"message\": \"No messages found.\" }");
+        set_status_code_200(response_object);
+        snprintf(response, MAX_BUFFER_SIZE, "[]");
         return;
     }
 
     // Zakładając, że masz funkcję do konwersji ChatMessage na JSON.
     char *json_result = convert_messages_to_json(messages, message_count);
-    
+
     set_status_code_200(response_object);
     snprintf(response, MAX_BUFFER_SIZE, "%s", json_result);
 

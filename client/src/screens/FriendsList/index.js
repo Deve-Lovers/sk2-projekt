@@ -1,13 +1,29 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import ListItem from 'sk/src/components/baseComponents/ListItem';
 import Screen from 'sk/src/components/baseComponents/Screen';
-import { users } from 'sk/src/helpers/mocks/usersMock';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { theme } from 'sk/src/helpers/theme';
+import { connect } from 'react-redux';
+import { getUserFriendsList } from 'sk/store/Friends/actions';
 
 function FriendsList(props) {
+  const { userFriends, getUserFriendsList: _getUserFriendsList, isPending } = props;
   const message =
     'Brak znajomych do wyświetlenia. Poznaj nowe osoby dodając je w zakładce \n"Dodaj znajomych"';
+
+  const [refreshing, setRefreshing] = useState(true);
+
+  useEffect(() => {
+    onRefresh();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      _getUserFriendsList();
+      setRefreshing(false);
+    }, 500);
+  };
 
   const renderNoFriends = () => (
     <View style={styles.container}>
@@ -19,23 +35,47 @@ function FriendsList(props) {
     props.navigation.navigate('Chat', { user: userData });
   };
 
-  return (
-    <Screen>
-      {users.map((user, index) => (
-        <ListItem
-          name={`${user.name} ${user.surname}`}
-          color={index % 5}
-          onPress={() => {
-            goToChat(user);
-          }}
-        />
-      ))}
-      {!users && renderNoFriends()}
-    </Screen>
-  );
+  const renderContent = () => {
+    if (refreshing && !userFriends.length) {
+      return <ActivityIndicator size="large" />;
+    }
+
+    if (!userFriends.length && !isPending) {
+      return renderNoFriends();
+    }
+
+    return (
+      <FlatList
+        data={userFriends}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item, index }) => (
+          <ListItem
+            name={`${item.name} ${item.surname}`}
+            color={index % 5}
+            onPress={() => {
+              goToChat(item);
+            }}
+          />
+        )}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      />
+    );
+  };
+
+  return <Screen>{renderContent()}</Screen>;
 }
 
-export default FriendsList;
+const mapStateToProps = (state) => ({
+  userFriends: state.friends.userFriends,
+  isPending: state.friends.isPending,
+  error: state.friends.error,
+});
+
+const mapDispatchToProps = (dispatch) => ({
+  getUserFriendsList: () => dispatch(getUserFriendsList()),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(FriendsList);
 
 const styles = StyleSheet.create({
   container: {

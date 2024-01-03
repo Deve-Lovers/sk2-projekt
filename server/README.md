@@ -37,7 +37,7 @@ Before you begin, ensure you have the following installed on your system:
 To compile the server, use the following GCC command:
 
 ```bash
-gcc server.c -o server.out -I/opt/homebrew/include -L/opt/homebrew/lib -lsqlite3 -ljansson
+gcc server.c -o server.out -I/usr/local/include -L/usr/local/lib -lsqlite3 -ljansson
 ```
 
 This command compiles `server.c` and creates an executable file named `server.out`. The flags `-I` and `-L` specify the include and library paths for SQLite3 and Jansson. The `-l` flags link against the SQLite3 and Jansson libraries.
