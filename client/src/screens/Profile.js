@@ -8,7 +8,7 @@ import Button from 'sk/src/components/baseComponents/Button';
 import { theme } from 'sk/src/helpers/theme';
 
 function Profile(props) {
-  const welcomeText = 'Witaj w aplikacji WebTap!\n';
+  const welcomeText = 'Witaj w aplikacji Webtap!\n';
   const addFriendsText =
     '- W zakładce "Dodaj znajomych" możesz dodać innych użytkowników do swojej listy znajomych\n\n';
   const friendsText = '- W zakładce "Znajomi" możesz czatować z poszczególnymi znajomymi\n\n';
