@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import FriendsList from 'sk/src/screens/FriendsList';
 import AddFriendList from 'sk/src/screens/AddFriendList';
-import Settings from 'sk/src/screens/Settings';
+import Settings from 'sk/src/screens/Profile';
 import Chat from 'sk/src/screens/Chat';
 
 const Tab = createBottomTabNavigator();

@@ -7,7 +7,7 @@ import Screen from 'sk/src/components/baseComponents/Screen';
 import Button from 'sk/src/components/baseComponents/Button';
 import { theme } from 'sk/src/helpers/theme';
 
-function Settings(props) {
+function Profile(props) {
   const welcomeText = 'Witaj w aplikacji WebTap!\n';
   const addFriendsText =
     '- W zakładce "Dodaj znajomych" możesz dodać innych użytkowników do swojej listy znajomych\n\n';
@@ -33,7 +33,7 @@ const mapDispatchToProps = (dispatch) => ({
   userLogout: () => dispatch(userLogout()),
 });
 
-export default connect(null, mapDispatchToProps)(Settings);
+export default connect(null, mapDispatchToProps)(Profile);
 
 const styles = StyleSheet.create({
   container: {
