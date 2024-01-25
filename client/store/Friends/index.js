@@ -66,7 +66,21 @@ export default (state = initialState, action) => {
       };
 
     case GET_OTHER_USERS_REJECTED:
+      return {
+        ...state,
+        otherFriends: [],
+        isPending: false,
+        error: action.payload.error.message,
+      };
+
     case GET_USER_FRIENDS_REJECTED:
+      return {
+        ...state,
+        userFriends: [],
+        isPending: false,
+        error: action.payload.error.message,
+      };
+
     case GET_MESSAGES_REJECTED:
     case SEND_MESSAGE_REJECTED:
       return {
