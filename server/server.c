@@ -321,7 +321,7 @@ int add_friend(sqlite3 *db, int main_id, int related_id) {
     } else {
         char sql2[255];
         sprintf(sql2, "INSERT INTO friends (main_id, related_id) VALUES (%d, %d);", related_id, main_id);
-        sqlite3_exec(db, sql, 0, 0, 0);
+        sqlite3_exec(db, sql2, 0, 0, 0);
         return 1;
     }
 }
