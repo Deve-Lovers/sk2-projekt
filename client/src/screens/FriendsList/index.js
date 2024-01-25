@@ -5,6 +5,7 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } f
 import { theme } from 'sk/src/helpers/theme';
 import { connect } from 'react-redux';
 import { getUserFriendsList } from 'sk/store/Friends/actions';
+import Button from 'sk/src/components/baseComponents/Button';
 
 function FriendsList(props) {
   const { userFriends, getUserFriendsList: _getUserFriendsList, isPending } = props;
@@ -19,8 +20,8 @@ function FriendsList(props) {
 
   const onRefresh = () => {
     setRefreshing(true);
+    _getUserFriendsList();
     setTimeout(() => {
-      _getUserFriendsList();
       setRefreshing(false);
     }, 500);
   };
@@ -28,6 +29,7 @@ function FriendsList(props) {
   const renderNoFriends = () => (
     <View style={styles.container}>
       <Text style={styles.text}>{message}</Text>
+      <Button title="Odśwież ↻" variant="primaryOutlined" onPress={onRefresh} />
     </View>
   );
 
@@ -36,7 +38,7 @@ function FriendsList(props) {
   };
 
   const renderContent = () => {
-    if (refreshing && !userFriends.length) {
+    if (refreshing) {
       return (
         <View style={styles.container}>
           <ActivityIndicator size="large" />
