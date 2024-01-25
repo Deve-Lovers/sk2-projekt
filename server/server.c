@@ -10,14 +10,10 @@
 
 #include <jansson.h>
 
-
-
-
 // db imports
 #include <sqlite3.h>
 
-// json imports ???
-// #include <jansson.h>
+
 // ===========================================
 
 #define PORT 8080
@@ -55,8 +51,8 @@ typedef struct {
     char *text;
 } ChatMessage;
 typedef struct {
-    ChatMessage *messages; // Dynamiczna tablica wiadomości
-    int count;             // Licznik wiadomości
+    ChatMessage *messages;
+    int count;
 } ChatMessages;
 typedef struct {
     int id;
@@ -64,8 +60,8 @@ typedef struct {
     char *surname;
 } Friend;
 typedef struct {
-    Friend *friends; // Dynamic array of friends
-    int count;       // Number of friends
+    Friend *friends;
+    int count;
 } FriendsData;
 
 
@@ -127,7 +123,6 @@ void get_payload(const char *request, Payload *payload, int expected_size) {
         return;
     }
 
-    // Przesuń wskaźnik, aby wskazywał na początek payloadu JSON.
     payload_start += 4;
 
     // Parsowanie JSON
@@ -141,7 +136,6 @@ void get_payload(const char *request, Payload *payload, int expected_size) {
         return;
     }
 
-    // Sprawdzanie, czy obiekt JSON jest słownikiem
     if (!json_is_object(root)) {
         fprintf(stderr, "error: root is not an object\n");
         json_decref(root);
@@ -154,7 +148,7 @@ void get_payload(const char *request, Payload *payload, int expected_size) {
 
     json_object_foreach(root, key, value) {
         if (payload->size >= expected_size) {
-            break; // Przerwij, jeśli osiągnięto oczekiwaną ilość elementów
+            break;
         }
         strncpy(payload->keys[payload->size], key, sizeof(payload->keys[payload->size]) - 1);
         strncpy(payload->values[payload->size], json_string_value(value), sizeof(payload->values[payload->size]) - 1);
@@ -201,14 +195,12 @@ static int user_callback(void *NotUsed, int argc, char **argv, char **azColName)
 static int chat_callback(void *data, int argc, char **argv, char **azColName) {
     ChatMessages *chatData = (ChatMessages *)data;
 
-    // Alokacja pamięci dla pojedynczej wiadomości
     ChatMessage *message = malloc(sizeof(ChatMessage));
     if (!message) {
         fprintf(stderr, "Memory allocation failed.\n");
-        return 1; // Zwracanie 1 w przypadku błędu
+        return 1;
     }
 
-    // Inicjalizacja pól struktury na NULL
     memset(message, 0, sizeof(ChatMessage));
 
     for (int i = 0; i < argc; i++) {
@@ -223,10 +215,9 @@ static int chat_callback(void *data, int argc, char **argv, char **azColName) {
         }
     }
 
-    // Realokacja tablicy wiadomości i dodanie nowej wiadomości
     chatData->messages = realloc(chatData->messages, (chatData->count + 1) * sizeof(ChatMessage));
     if (!chatData->messages) {
-        free(message->created); // Zwolnienie pamięci, jeśli została już zaalokowana
+        free(message->created);
         free(message->text);
         free(message);
         return 1;
@@ -235,21 +226,19 @@ static int chat_callback(void *data, int argc, char **argv, char **azColName) {
     chatData->messages[chatData->count] = *message;
     chatData->count++;
 
-    free(message); // Zwolnienie tymczasowej struktury ChatMessage
+    free(message);
     return 0;
 }
 
 static int friends_callback(void *data, int argc, char **argv, char **azColName) {
     FriendsData *friendsData = (FriendsData *)data;
 
-    // Allocate memory for a single friend
     Friend *friend = malloc(sizeof(Friend));
     if (!friend) {
         fprintf(stderr, "Memory allocation failed.\n");
         return 1;
     }
 
-    // Initialize fields to NULL
     memset(friend, 0, sizeof(Friend));
 
     for (int i = 0; i < argc; i++) {
@@ -262,7 +251,6 @@ static int friends_callback(void *data, int argc, char **argv, char **azColName)
         }
     }
 
-    // Reallocate the friends array and add the new friend
     friendsData->friends = realloc(friendsData->friends, (friendsData->count + 1) * sizeof(Friend));
     if (!friendsData->friends) {
         free(friend->name);
@@ -274,7 +262,7 @@ static int friends_callback(void *data, int argc, char **argv, char **azColName)
     friendsData->friends[friendsData->count] = *friend;
     friendsData->count++;
 
-    free(friend); // Free the temporary Friend structure
+    free(friend);
     return 0;
 }
 
@@ -312,7 +300,6 @@ int add_user(sqlite3 *db, const char *name, const char *surname, const char *ema
     char sql[255];
     sprintf(sql, "INSERT INTO users (email, name, surname, password) VALUES ('%s', '%s', '%s', '%s');", email, name, surname, password);
 
-    //printf("SQLPRZED: %s\n", sql);
     int rc = sqlite3_exec(db, sql, 0, 0, 0);
 
     if (rc != SQLITE_OK) {
@@ -535,7 +522,6 @@ User middleware_auth(const char *request) {
 // CONVERTORS ================================
 
 char* convert_messages_to_json(ChatMessage *messages, int message_count) {
-    // Przy założeniu, że pojedynczy JSON nie przekracza 512 znaków
     int buffer_size = message_count * 512;
     char *json_result = malloc(buffer_size);
     if (json_result == NULL) {
@@ -558,7 +544,6 @@ char* convert_messages_to_json(ChatMessage *messages, int message_count) {
 }
 
 char* convert_friends_to_json(Friend *friends, int friend_count) {
-    // Assuming each JSON object doesn't exceed 256 characters
     int buffer_size = friend_count * 256;
     char *json_result = malloc(buffer_size);
     if (!json_result) return NULL;
@@ -726,7 +711,6 @@ void endpoint_list_my_friends(sqlite3 *db, Response *response_object, char *resp
     set_status_code_200(response_object);
     snprintf(response, MAX_BUFFER_SIZE, "%s", json_result);
 
-    // Clean up
     for (int i = 0; i < friend_count; i++) {
         free(friends[i].name);
         free(friends[i].surname);
@@ -755,7 +739,6 @@ void endpoint_list_others(sqlite3 *db, Response *response_object, char *response
     set_status_code_200(response_object);
     snprintf(response, MAX_BUFFER_SIZE, "%s", json_result);
 
-    // Clean up
     for (int i = 0; i < user_count; i++) {
         free(others[i].name);
         free(others[i].surname);
@@ -792,7 +775,6 @@ void endpoint_chat(sqlite3 *db, const char *request, Response *response_object, 
         return;
     }
 
-    // Zakładając, że masz funkcję do konwersji ChatMessage na JSON.
     char *json_result = convert_messages_to_json(messages, message_count);
 
     set_status_code_200(response_object);
@@ -925,28 +907,24 @@ int main() {
     socklen_t address_len = sizeof(server_address);
 
     sqlite3 *db;
-    int rc = sqlite3_open("db.sqlite3", &db); // Otwórz bazę danych z pliku 'db'
+    int rc = sqlite3_open("db.sqlite3", &db);
     setup_db(db, rc);
 
-    // Create socket
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
     }
 
-    // Initialize server address structure
     memset(&server_address, 0, sizeof(server_address));
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = INADDR_ANY;
     server_address.sin_port = htons(PORT);
 
-    // Bind the socket
     if (bind(server_socket, (struct sockaddr*)&server_address, sizeof(server_address)) == -1) {
         perror("Bind failed");
         exit(EXIT_FAILURE);
     }
 
-    // Listen for incoming connections
     if (listen(server_socket, MAX_CONNECTIONS) == -1) {
         perror("Listen failed");
         exit(EXIT_FAILURE);
@@ -955,7 +933,6 @@ int main() {
     printf("(server) ::: Server listening on port %d...\n", PORT);
 
     while (1) {
-        // Accept a connection
         if ((client_socket = accept(server_socket, (struct sockaddr*)&client_address, &address_len)) == -1) {
             perror("Accept failed");
             continue;
@@ -963,7 +940,6 @@ int main() {
 
         printf("(server) ::: Connection accepted from %s:%d\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
 
-        // Receive the client's request
         char buffer[MAX_BUFFER_SIZE];
         ssize_t bytes_received = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
 
@@ -973,9 +949,8 @@ int main() {
             continue;
         }
 
-        buffer[bytes_received] = '\0';  // Null-terminate the received data
+        buffer[bytes_received] = '\0';
 
-        // Handle the client request based on the endpoint
         handle_client(db, client_socket, buffer);
     }
 
