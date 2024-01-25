@@ -319,7 +319,9 @@ int add_friend(sqlite3 *db, int main_id, int related_id) {
         fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(db));
         return 0;
     } else {
-        printf("Friend added successfully.\n");
+        char sql2[255];
+        sprintf(sql2, "INSERT INTO friends (main_id, related_id) VALUES (%d, %d);", related_id, main_id);
+        sqlite3_exec(db, sql, 0, 0, 0);
         return 1;
     }
 }
